@@ -165,7 +165,7 @@ const ZONES: Zone[] = [
     dropDir: "left",
     options: [
       { label: "Hábitos", description: "Construye rutinas que mejoren tu vida" },
-      { label: "Rutina", description: "Organiza tu día para ser más efectivo" },
+      { label: "Rutina", description: "Organiza tu d��a para ser más efectivo" },
       { label: "Organización", description: "Mantén tu espacio y mente en orden" },
     ],
   },
@@ -322,9 +322,12 @@ function ZoneMarker({
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  const PW = 44   // pin width
-  const PH = 56   // pin height (circle + tail)
-  const R  = PW / 2
+  const PW = 44        // pin width = circle diameter
+  const TAIL = 14      // tail height below circle
+  const PH = PW + TAIL // total pin height
+  const R  = PW / 2    // circle radius
+  // Circle center in SVG coords — the pinPath arc is centered at (PW/2, R)
+  const CIRCLE_CY = R  // = 22px from top
 
   const scale = isOpen ? 1.12 : isNear ? 1.06 : 1
 
@@ -365,45 +368,44 @@ function ZoneMarker({
         viewBox={`0 0 ${PW} ${PH}`}
         style={{ display: "block", overflow: "visible" }}
       >
-        {/* Border */}
-        <path
-          d={pinPath(PW, PH, R)}
-          fill={zone.colorDark}
-        />
-        {/* Main fill */}
+        {/* Border/shadow layer */}
+        <path d={pinPath(PW, PH, R)} fill={zone.colorDark} />
+        {/* Main color fill (inset 2px) */}
         <path
           d={pinPath(PW - 4, PH - 3, R - 2)}
           transform="translate(2, 2)"
           fill={zone.color}
         />
-        {/* Shine */}
+        {/* Shine highlight */}
         <circle
           cx={PW / 2 - R * 0.2}
-          cy={R * 0.45}
+          cy={CIRCLE_CY * 0.55}
           r={R * 0.22}
-          fill="rgba(255,255,255,0.28)"
+          fill="rgba(255,255,255,0.3)"
         />
+        {/* Icon rendered directly in SVG for pixel-perfect centering */}
+        <foreignObject
+          x={0}
+          y={0}
+          width={PW}
+          height={PW}
+        >
+          <div
+            style={{
+              width: PW,
+              height: PW,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon
+              style={{ width: 20, height: 20, color: "#ffffff" }}
+              strokeWidth={2.5}
+            />
+          </div>
+        </foreignObject>
       </svg>
-
-      {/* Icon centered in pin circle */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: PW,
-          height: PW,  // just the circle part
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
-        }}
-      >
-        <Icon
-          style={{ width: 18, height: 18, color: "#ffffff" }}
-          strokeWidth={2.5}
-        />
-      </div>
 
       {/* "E" key badge when near and not open */}
       {isNear && !isOpen && (
