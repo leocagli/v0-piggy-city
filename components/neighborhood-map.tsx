@@ -387,8 +387,15 @@ export function NeighborhoodMap() {
       </div>
       
       {/* Map Container */}
-      <div className="relative bg-card p-4 rounded-2xl shadow-2xl border-4 border-border overflow-hidden">
-        {/* Grid */}
+      <div 
+        className="relative p-4 rounded-2xl shadow-2xl border-4 border-border overflow-hidden bg-cover bg-center"
+        style={{
+          backgroundImage: 'url(/neighborhood-background.jpg)',
+          width: GRID_SIZE * CELL_SIZE + 32,
+          height: GRID_SIZE * CELL_SIZE + 32,
+        }}
+      >
+        {/* Grid overlay */}
         <div 
           className="relative"
           style={{
@@ -396,7 +403,7 @@ export function NeighborhoodMap() {
             height: GRID_SIZE * CELL_SIZE,
           }}
         >
-          {/* Render cells */}
+          {/* Render cells with transparency overlay for pathfinding visualization */}
           {grid.map((row, y) =>
             row.map((cell, x) => {
               const walkable = isWalkable(x, y, grid)
@@ -406,23 +413,22 @@ export function NeighborhoodMap() {
               return (
                 <div
                   key={`${x}-${y}`}
-                  className={`absolute transition-all duration-150 ${getCellColor(cell)} ${
+                  className={`absolute transition-all duration-150 ${
                     isHovered && walkable ? "ring-2 ring-primary ring-inset" : ""
-                  } ${isHovered && !walkable ? "ring-2 ring-destructive ring-inset" : ""} ${
-                    showPaths && isPath ? "opacity-100" : ""
-                  }`}
+                  } ${isHovered && !walkable ? "ring-2 ring-destructive ring-inset" : ""}`}
                   style={{
                     left: x * CELL_SIZE,
                     top: y * CELL_SIZE,
                     width: CELL_SIZE,
                     height: CELL_SIZE,
+                    backgroundColor: showPaths && isPath ? 'rgba(200, 180, 100, 0.3)' : 'transparent',
                   }}
                   onMouseEnter={() => handleCellHover(x, y)}
                   onMouseLeave={handleCellLeave}
                 >
                   {/* Path indicator */}
                   {showPaths && isPath && (
-                    <div className="absolute inset-1 rounded bg-path-dark/30" />
+                    <div className="absolute inset-1 rounded border border-path-dark/50" />
                   )}
                 </div>
               )
