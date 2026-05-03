@@ -390,7 +390,7 @@ export function NeighborhoodMap() {
       <div 
         className="relative p-4 rounded-2xl shadow-2xl border-4 border-border overflow-hidden bg-cover bg-center"
         style={{
-          backgroundImage: 'url(/neighborhood-background.jpg)',
+          backgroundImage: 'url(/neighborhood-background.png)',
           width: GRID_SIZE * CELL_SIZE + 32,
           height: GRID_SIZE * CELL_SIZE + 32,
         }}
