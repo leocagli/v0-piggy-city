@@ -396,28 +396,31 @@ function ZoneMarker({
           r={R * 0.22}
           fill="rgba(255,255,255,0.3)"
         />
-        {/* Icon rendered directly in SVG for pixel-perfect centering */}
-        <foreignObject
-          x={0}
-          y={0}
-          width={PW}
-          height={PW}
-        >
-          <div
-            style={{
-              width: PW,
-              height: PW,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+        {/* Icon — centered perfectly in circle */}
+        <g transform={`translate(${PW / 2}, ${CIRCLE_CY})`}>
+          <foreignObject
+            x={-10}
+            y={-10}
+            width={20}
+            height={20}
           >
-            <Icon
-              style={{ width: 20, height: 20, color: "#ffffff" }}
-              strokeWidth={2.5}
-            />
-          </div>
-        </foreignObject>
+            <div
+              xmlns="http://www.w3.org/1999/xhtml"
+              style={{
+                width: 20,
+                height: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon
+                style={{ width: "100%", height: "100%", color: "#ffffff" }}
+                strokeWidth={2.5}
+              />
+            </div>
+          </foreignObject>
+        </g>
       </svg>
 
       {/* "E" key badge when near and not open */}
