@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { NPCLeaf } from "./npc-leaf"
+import { NPCBusinessBear } from "./npc-business-bear"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -1134,8 +1135,17 @@ export function NeighborhoodMap() {
         const npcX = 7
         const npcY = 5
         const distance = Math.sqrt(Math.pow(piggyPos.x - npcX, 2) + Math.pow(piggyPos.y - npcY, 2))
-        const isNearby = distance < 2.5 // Show bubble when within ~2.5 cells
+        const isNearby = distance < 2.5
         return <NPCLeaf x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
+      })()}
+
+      {/* NPC Business Bear in the business district */}
+      {(() => {
+        const npcX = 6
+        const npcY = 13
+        const distance = Math.sqrt(Math.pow(piggyPos.x - npcX, 2) + Math.pow(piggyPos.y - npcY, 2))
+        const isNearby = distance < 2.5
+        return <NPCBusinessBear x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
       })()}
 
       {/* Bottom-right controls */}
