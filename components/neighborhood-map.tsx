@@ -382,7 +382,7 @@ function ZoneMarker({
         style={{
           display: "block",
           overflow: "visible",
-          ...(zone.id === "nature" && { marginLeft: "-148px", marginTop: "34px" }),
+          ...(zone.id === "nature" && { marginLeft: "-90px", marginTop: "34px" }),
           ...(zone.id === "home" && { marginLeft: "-136px", marginTop: "-6px" }),
           ...(zone.id === "business" && { marginLeft: "39px", marginTop: "23px" }),
           ...(zone.id === "abstract" && { marginLeft: "39px", marginTop: "23px" }),
