@@ -12,7 +12,6 @@ interface NPCLeafProps {
 export function NPCLeaf({ x, y, cellW, cellH }: NPCLeafProps) {
   const screenX = (x + 0.5) * cellW
   const screenY = (y + 0.5) * cellH
-  const npcSize = Math.max(40, cellW * 1.6) // NPC scales with cells
 
   return (
     <div
@@ -20,28 +19,26 @@ export function NPCLeaf({ x, y, cellW, cellH }: NPCLeafProps) {
       style={{
         left: `${screenX}%`,
         top: `${screenY}%`,
-        transform: 'translate(-50%, -50%)',
+        width: `${cellW * 2}%`,
+        height: `${cellH * 2}%`,
+        transform: 'translate(-50%, -62%)',
       }}
     >
       <div
         style={{
-          width: npcSize,
-          height: npcSize,
+          width: '100%',
+          height: '100%',
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.25))',
         }}
       >
         <Image
           src="/npc-leaf.png"
           alt="Leaf NPC"
-          width={npcSize}
-          height={npcSize}
+          fill
           style={{
-            width: '100%',
-            height: '100%',
             objectFit: 'contain',
             imageRendering: 'pixelated',
           }}
@@ -54,7 +51,7 @@ export function NPCLeaf({ x, y, cellW, cellH }: NPCLeafProps) {
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
+          50% { transform: translateY(-8px); }
         }
         .npc-leaf-float {
           animation: float 3s ease-in-out infinite;
