@@ -95,27 +95,50 @@ const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
 // ── Character Sprite Component ─────────────────────────────────────────────────
 const SPRITE_SIZE = 100 // Fixed pixel size for consistency
 
+const ALL_SPRITES = {
+  down: "/sprites/front-1.png",
+  up: "/sprites/back-1.png",
+  left: "/sprites/left-1.png",
+  right: "/sprites/right-1.png",
+} as const
+
 function CharacterSprite({ 
-  sprite, 
+  direction, 
   isMoving 
 }: { 
-  sprite: string
+  direction: "up" | "down" | "left" | "right"
   isMoving: boolean 
 }) {
+  // Render ALL 4 sprites at once, only show the active one.
+  // This means sprite swaps are INSTANT - no image loading delay.
   return (
-    <img
-      src={sprite}
-      alt="Piggy"
-      draggable={false}
+    <div
       style={{
         width: `${SPRITE_SIZE}px`,
         height: `${SPRITE_SIZE}px`,
-        objectFit: "contain",
-        imageRendering: "pixelated",
-        animation: isMoving ? "walk-bounce 0.35s ease-in-out infinite" : "none",
-        userSelect: "none",
+        position: "relative",
+        animation: isMoving ? "walk-bounce 0.3s ease-in-out infinite" : "none",
       }}
-    />
+    >
+      {(Object.keys(ALL_SPRITES) as Array<keyof typeof ALL_SPRITES>).map((dir) => (
+        <img
+          key={dir}
+          src={ALL_SPRITES[dir]}
+          alt="Piggy"
+          draggable={false}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            imageRendering: "pixelated",
+            userSelect: "none",
+            opacity: dir === direction ? 1 : 0,
+          }}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -303,14 +326,6 @@ export function NeighborhoodMap() {
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  // Sprite based on direction - use individual frames
-  const spriteMap = {
-    down: "/sprites/front-1.png",
-    up: "/sprites/back-1.png",
-    left: "/sprites/left-1.png",
-    right: "/sprites/right-1.png",
-  }[piggyDirection]
-
   // Piggy position in screen percentages
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
@@ -370,11 +385,11 @@ export function NeighborhoodMap() {
           left: `${piggyScreenX}%`,
           top: `${piggyScreenY}%`,
           transform: "translate(-50%, -62%)",
-          transition: "left 0.2s ease, top 0.2s ease",
+          transition: "left 0.12s linear, top 0.12s linear",
         }}
       >
         <CharacterSprite
-          sprite={spriteMap}
+          direction={piggyDirection}
           isMoving={isMoving}
         />
       </div>
