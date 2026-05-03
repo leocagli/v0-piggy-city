@@ -112,7 +112,7 @@ function CharacterSprite({
         height: `${SPRITE_SIZE}px`,
         objectFit: "contain",
         imageRendering: "pixelated",
-        animation: isMoving ? "walk-bounce 0.3s steps(2) infinite" : "none",
+        animation: isMoving ? "walk-bounce 0.35s ease-in-out infinite" : "none",
         userSelect: "none",
       }}
     />
@@ -204,10 +204,10 @@ export function NeighborhoodMap() {
     // Clear any pending stop
     if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     setIsMoving(true)
-    // Stop animation after movement completes
+    // Keep animation active for the full duration
     moveTimeoutRef.current = setTimeout(() => {
       setIsMoving(false)
-    }, 250)
+    }, 350)
   }, [])
 
   const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
