@@ -335,8 +335,8 @@ function ZoneMarker({
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  const PW = 44        // pin width = circle diameter
-  const TAIL = 14      // tail height below circle
+  const PW = Math.max(32, cellW * 1.8)  // pin width scales with cell, min 32px
+  const TAIL = PW * 0.32                // tail is ~32% of width
   const PH = PW + TAIL // total pin height
   const R  = PW / 2    // circle radius
   // Circle center in SVG coords — the pinPath arc is centered at (PW/2, R)
@@ -382,10 +382,10 @@ function ZoneMarker({
         style={{
           display: "block",
           overflow: "visible",
-          ...(zone.id === "nature" && { marginLeft: "-148px", marginTop: "34px" }),
-          ...(zone.id === "home" && { marginLeft: "-136px", marginTop: "-6px" }),
-          ...(zone.id === "business" && { marginLeft: "39px", marginTop: "23px" }),
-          ...(zone.id === "abstract" && { marginLeft: "39px", marginTop: "23px" }),
+          ...(zone.id === "nature" && { marginLeft: `${-PW * 3.36}px`, marginTop: `${PW * 0.77}px` }),
+          ...(zone.id === "home" && { marginLeft: `${-PW * 3.09}px`, marginTop: `${-PW * 0.14}px` }),
+          ...(zone.id === "business" && { marginLeft: `${PW * 0.89}px`, marginTop: `${PW * 0.52}px` }),
+          ...(zone.id === "abstract" && { marginLeft: `${PW * 0.89}px`, marginTop: `${PW * 0.52}px` }),
         }}
       >
         {/* Circle (head of pin) */}
@@ -862,8 +862,10 @@ export function NeighborhoodMap() {
 
       {/* Cartel del mapa — pin idéntico al de las zonas, anclado al tablero */}
       {(() => {
-        const PW = 44
-        const TAIL = 14
+        const cellW = 100 / GRID_COLS
+        const cellH = 100 / GRID_ROWS
+        const PW = Math.max(32, cellW * 1.8)  // scales with cell
+        const TAIL = PW * 0.32
         const PH = PW + TAIL
         const R  = PW / 2
         // Colors: amber/dorado para diferenciarlo de los otros pins
@@ -886,8 +888,8 @@ export function NeighborhoodMap() {
               border:    showPaths ? "2px dashed rgba(255,200,0,0.9)" : "none",
               padding:   0,
               transition: "transform 0.15s ease",
-              marginTop: "12px",
-              marginLeft: "16px",
+              marginTop: `${PW * 0.27}px`,
+              marginLeft: `${PW * 0.36}px`,
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1.12)`)}
             onMouseLeave={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1)`)}
