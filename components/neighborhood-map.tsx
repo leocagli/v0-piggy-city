@@ -279,9 +279,6 @@ export function NeighborhoodMap() {
     right: "/piggy-walk-right.png",
   }[piggyDirection]
 
-  // Background position for spritesheet animation (4 frames, each 25% of the image width)
-  const bgPositionX = animationFrame * 25
-
   // Piggy position in screen percentages
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
@@ -347,15 +344,12 @@ export function NeighborhoodMap() {
         <div
           style={{
             width: "clamp(80px, 9vw, 130px)",
-            height: "auto",
+            height: "clamp(80px, 9vw, 130px)",
             backgroundImage: `url(${walkAnimationSheet})`,
             backgroundSize: "400% 100%",
-            backgroundPosition: `${bgPositionX}% 0%`,
-            aspectRatio: "1",
+            backgroundPosition: `${(animationFrame / 3) * 100}% 0%`,
             backgroundRepeat: "no-repeat",
             imageRendering: "pixelated",
-            WebkitImageRendering: "pixelated",
-            filter: "image-rendering: pixelated",
           }}
         />
       </div>
