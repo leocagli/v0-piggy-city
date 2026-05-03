@@ -14,7 +14,6 @@ import {
   Gamepad2,
   MousePointerClick,
   ChevronRight,
-  MessageCircle,
 } from "lucide-react"
 
 const GRID_COLS = 24
@@ -472,24 +471,13 @@ function ZoneMarker({
   )
 }
 
-// NPC Names for each zone
-const NPC_NAMES: Record<ZoneId, string> = {
-  nature: "Leafy",
-  home: "Grampy",
-  business: "Racco",
-  abstract: "Lumi",
-  faq: "Guardián",
-}
-
 // ── Zone Dropdown Panel — floats next to the pin ──────────────────────────────
 function ZoneDropdown({
   zone,
   onClose,
-  onOpenChat,
 }: {
   zone: Zone
   onClose: () => void
-  onOpenChat: () => void
 }) {
   const Icon = zone.icon
   const cellW = 100 / GRID_COLS
@@ -668,42 +656,6 @@ function ZoneDropdown({
               </div>
             </div>
           ))}
-
-          {/* Chat with NPC button */}
-          <button
-            onClick={onOpenChat}
-            style={{
-              marginTop: 4,
-              padding: "8px 10px",
-              borderRadius: "4px",
-              background: zone.color,
-              border: `2px solid ${zone.colorDark}`,
-              cursor: "pointer",
-              transition: "transform 0.1s ease, background 0.15s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              boxShadow: `0 2px 0 ${zone.colorDark}`,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.02)"
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"
-            }}
-          >
-            <MessageCircle style={{ width: 12, height: 12, color: "#fff" }} strokeWidth={2.5} />
-            <span style={{
-              color: "#fff",
-              fontSize: "10px",
-              fontWeight: 800,
-              letterSpacing: "0.3px",
-              textTransform: "uppercase",
-            }}>
-              Hablar con {NPC_NAMES[zone.id]}
-            </span>
-          </button>
         </div>
       </div>
 
@@ -736,7 +688,6 @@ export function NeighborhoodMap() {
   const [isMoving, setIsMoving] = useState(false)
   const [openZone, setOpenZone] = useState<Zone | null>(null)
   const [showMinimap, setShowMinimap] = useState(false)
-  const [chatZone, setChatZone] = useState<Zone | null>(null)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
   const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -781,7 +732,6 @@ export function NeighborhoodMap() {
       if (e.key === "Escape") {
         setShowMinimap(false)
         setOpenZone(null)
-        setChatZone(null)
         e.preventDefault()
         return
       }
@@ -992,24 +942,7 @@ export function NeighborhoodMap() {
 
       {/* Zone dropdown panels */}
       {openZone && (
-        <ZoneDropdown
-          zone={openZone}
-          onClose={() => setOpenZone(null)}
-          onOpenChat={() => {
-            setChatZone(openZone)
-            setOpenZone(null)
-          }}
-        />
-      )}
-
-      {/* NPC Chat modal */}
-      {chatZone && (
-        <NPCChat
-          npcId={chatZone.id}
-          npcName={NPC_NAMES[chatZone.id]}
-          npcColor={chatZone.color}
-          onClose={() => setChatZone(null)}
-        />
+        <ZoneDropdown zone={openZone} onClose={() => setOpenZone(null)} />
       )}
 
       {/* Minimap modal — opens on map click */}
