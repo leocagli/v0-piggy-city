@@ -379,7 +379,14 @@ function ZoneMarker({
         width={PW}
         height={PH}
         viewBox={`0 0 ${PW} ${PH}`}
-        style={{ display: "block", overflow: "visible" }}
+        style={{
+          display: "block",
+          overflow: "visible",
+          ...(zone.id === "nature" && { marginLeft: "-148px", marginTop: "34px" }),
+          ...(zone.id === "home" && { marginLeft: "-136px", marginTop: "-6px" }),
+          ...(zone.id === "business" && { marginLeft: "39px", marginTop: "23px" }),
+          ...(zone.id === "abstract" && { marginLeft: "39px", marginTop: "23px" }),
+        }}
       >
         {/* Circle (head of pin) */}
         <circle
@@ -852,6 +859,8 @@ export function NeighborhoodMap() {
               border:    showPaths ? "2px dashed rgba(255,200,0,0.9)" : "none",
               padding:   0,
               transition: "transform 0.15s ease",
+              marginTop: "12px",
+              marginLeft: "16px",
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1.12)`)}
             onMouseLeave={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1)`)}
@@ -879,7 +888,13 @@ export function NeighborhoodMap() {
               width={PW}
               height={PH}
               viewBox={`0 0 ${PW} ${PH}`}
-              style={{ display: "block", overflow: "visible", pointerEvents: "none" }}
+              style={{
+                display: "block",
+                overflow: "visible",
+                pointerEvents: "none",
+                marginLeft: "39px",
+                marginTop: "23px",
+              }}
             >
               {/* Circle border */}
               <circle cx={PW / 2} cy={R} r={R}     fill={pinColorDark} />
