@@ -234,7 +234,6 @@ export function NeighborhoodMap() {
           style={{
             width: "clamp(80px, 9vw, 130px)",
             height: "auto",
-            filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.55)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
             animation: "piggyFloat 3s ease-in-out infinite",
             imageRendering: "pixelated",
           }}
