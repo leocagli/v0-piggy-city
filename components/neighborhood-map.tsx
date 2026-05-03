@@ -506,13 +506,12 @@ function ZoneDropdown({
 
   return (
     <div
-      className="absolute pointer-events-auto"
+      className="absolute pointer-events-auto w-[180px] sm:w-[220px]"
       style={{
         left: pinLeft,
         top: pinTop,
         transform: `translate(${offsetX}, -${PH + 8}px)`,
         zIndex: 50,
-        width: 220,
       }}
     >
       {/* Panel */}
@@ -756,14 +755,25 @@ export function NeighborhoodMap() {
 
   const handleJoystickStart = useCallback(() => setJoystickActive(true), [])
 
+  // Joystick throttle ref — prevents too-fast movement
+  const joystickThrottleRef = useRef<number>(0)
+  const JOYSTICK_THROTTLE_MS = 180 // Minimum ms between joystick moves
+
   const handleJoystickMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!joystickRef.current || !joystickActive) return
+      
+      // Throttle joystick input
+      const now = Date.now()
+      if (now - joystickThrottleRef.current < JOYSTICK_THROTTLE_MS) return
+      
       const rect = joystickRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left - rect.width / 2
       const y = e.clientY - rect.top - rect.height / 2
       const distance = Math.sqrt(x * x + y * y)
-      if (distance > 5) {
+      
+      // Higher threshold = less sensitive (need to move further from center)
+      if (distance > 20) {
         const angle = Math.atan2(y, x)
         let dir: "down" | "up" | "left" | "right" | null = null
         if      (angle > -Math.PI / 4 && angle < Math.PI / 4)       dir = "right"
@@ -771,6 +781,7 @@ export function NeighborhoodMap() {
         else if (angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4) dir = "up"
         else                                                           dir = "left"
         if (dir) {
+          joystickThrottleRef.current = now
           const dx = dir === "right" ? 1 : dir === "left" ? -1 : 0
           const dy = dir === "down"  ? 1 : dir === "up"   ? -1 : 0
           movePiggy(dx, dy, dir)
@@ -1020,8 +1031,9 @@ export function NeighborhoodMap() {
             />
           </div>
 
-          {/* "ESC para cerrar" hint */}
+          {/* "TOCA para cerrar" hint on mobile, "ESC para cerrar" on desktop */}
           <div
+            className="hidden sm:block"
             style={{
               position: "absolute",
               bottom: 16,
@@ -1037,7 +1049,27 @@ export function NeighborhoodMap() {
               letterSpacing: "0.5px",
             }}
           >
-            CLICK / ESC PARA CERRAR
+            ESC PARA CERRAR
+          </div>
+          {/* Mobile hint */}
+          <div
+            className="sm:hidden"
+            style={{
+              position: "absolute",
+              bottom: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "#3e2723",
+              color: "#d7ccc8",
+              border: "2px solid #6d4c41",
+              borderRadius: "3px",
+              padding: "3px 12px",
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.5px",
+            }}
+          >
+            TOCA PARA CERRAR
           </div>
         </div>
       )}
@@ -1056,7 +1088,7 @@ export function NeighborhoodMap() {
       </div>
 
       {/* Bottom-right controls */}
-      <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2 pointer-events-auto">
+      <div className="absolute bottom-3 right-3 sm:bottom-3 sm:right-3 z-40 flex items-center gap-1 sm:gap-2 pointer-events-auto">
         {showPaths && hoveredCell && (
           <div
             style={{
@@ -1074,7 +1106,9 @@ export function NeighborhoodMap() {
           </div>
         )}
 
+        {/* Hide keyboard hint on mobile */}
         <div
+          className="hidden sm:block"
           style={{
             background: "#fffdf6",
             border: "3px solid #4e342e",
@@ -1116,13 +1150,11 @@ export function NeighborhoodMap() {
         </button>
       </div>
 
-      {/* Bottom-left: virtual joystick */}
+      {/* Bottom-left: virtual joystick — larger on mobile for easier touch */}
       <div
         ref={joystickRef}
-        className="absolute bottom-4 left-4 z-40 pointer-events-auto touch-none select-none"
+        className="absolute bottom-4 left-4 sm:bottom-4 sm:left-4 z-40 pointer-events-auto touch-none select-none w-28 h-28 sm:w-24 sm:h-24"
         style={{
-          width: 96,
-          height: 96,
           background: joystickActive ? "#5d4037" : "#fffdf6",
           border: "4px solid #4e342e",
           borderRadius: "50%",

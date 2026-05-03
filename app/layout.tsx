@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   title: 'Mapa del Vecindario - Neighborhood Map',
   description: 'Mapa interactivo de vecindario con zonas temáticas y sistema de caminos para NPCs',
   generator: 'v0.app',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   icons: {
     icon: [
       {
