@@ -15,6 +15,7 @@ import {
   MousePointerClick,
   ChevronRight,
 } from "lucide-react"
+import { NPCLeaf } from "./npc-leaf"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -1127,6 +1128,9 @@ export function NeighborhoodMap() {
           ))}
         </div>
       </div>
+
+      {/* NPC Leaf near the waterfall */}
+      <NPCLeaf x={7} y={5} cellW={cellW} cellH={cellH} />
 
       {/* Bottom-right controls */}
       <div
