@@ -329,7 +329,7 @@ function ZoneMarker({
   zone: Zone
   isNear: boolean
   isOpen: boolean
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
 }) {
   const Icon = zone.icon
   const cellW = 100 / GRID_COLS
@@ -684,6 +684,7 @@ export function NeighborhoodMap() {
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
   const [isMoving, setIsMoving] = useState(false)
   const [openZone, setOpenZone] = useState<Zone | null>(null)
+  const [showMinimap, setShowMinimap] = useState(false)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
   const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -725,10 +726,13 @@ export function NeighborhoodMap() {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (openZone) {
-        if (e.key === "Escape") { setOpenZone(null); e.preventDefault() }
+      if (e.key === "Escape") {
+        setShowMinimap(false)
+        setOpenZone(null)
+        e.preventDefault()
         return
       }
+      if (openZone) return
       const key = e.key.toLowerCase()
       switch (key) {
         case "arrowup":    case "w": movePiggy(0, -1, "up");    e.preventDefault(); break
@@ -792,10 +796,11 @@ export function NeighborhoodMap() {
         draggable={false}
       />
 
-      {/* Hit-test grid */}
+      {/* Hit-test grid — click on map to open minimap */}
       <div
         className="absolute inset-0"
-        style={{ cursor: showPaths ? "crosshair" : "default", pointerEvents: "auto" }}
+        style={{ cursor: showPaths ? "crosshair" : "pointer", pointerEvents: "auto" }}
+        onClick={() => setShowMinimap(true)}
       >
         {grid.map((row, y) =>
           row.map((cell, x) => {
@@ -833,13 +838,112 @@ export function NeighborhoodMap() {
           zone={zone}
           isNear={nearestZone?.id === zone.id}
           isOpen={openZone?.id === zone.id}
-          onClick={() => setOpenZone((prev) => (prev?.id === zone.id ? null : zone))}
+          onClick={(e) => { e.stopPropagation(); setOpenZone((prev) => (prev?.id === zone.id ? null : zone)) }}
         />
       ))}
 
       {/* Zone dropdown panels */}
       {openZone && (
         <ZoneDropdown zone={openZone} onClose={() => setOpenZone(null)} />
+      )}
+
+      {/* Minimap modal — opens on map click */}
+      {showMinimap && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(20,12,6,0.82)" }}
+          onClick={() => setShowMinimap(false)}
+        >
+          <div
+            className="relative"
+            style={{
+              maxWidth: "min(92vw, 900px)",
+              maxHeight: "90vh",
+              border: "5px solid #4e342e",
+              borderRadius: "6px",
+              boxShadow: "inset -4px -4px 0 #3e2723, inset 4px 4px 0 #8d6e63, 0 12px 48px rgba(0,0,0,0.6), 0 6px 0 #3e2723",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Title bar */}
+            <div
+              style={{
+                background: "#5d4037",
+                borderBottom: "4px solid #4e342e",
+                boxShadow: "inset 0 -2px 0 #3e2723, inset 0 2px 0 #8d6e63",
+                padding: "8px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{
+                color: "#fff8e1",
+                fontWeight: 800,
+                fontSize: "13px",
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+              }}>
+                Minimapa y Edificios
+              </div>
+              <button
+                onClick={() => setShowMinimap(false)}
+                style={{
+                  background: "#c62828",
+                  border: "3px solid #4e342e",
+                  borderRadius: "3px",
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "inset -2px -2px 0 #b71c1c, inset 2px 2px 0 #ef5350",
+                  flexShrink: 0,
+                }}
+                aria-label="Cerrar minimapa"
+              >
+                <X style={{ width: 14, height: 14, color: "#fff8e1" }} strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Minimap image */}
+            <img
+              src="/minimapa.png"
+              alt="Minimapa del vecindario con guia de edificios"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "auto",
+                maxHeight: "calc(90vh - 52px)",
+                objectFit: "contain",
+                imageRendering: "pixelated",
+              }}
+              draggable={false}
+            />
+          </div>
+
+          {/* "ESC para cerrar" hint */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "#3e2723",
+              color: "#d7ccc8",
+              border: "2px solid #6d4c41",
+              borderRadius: "3px",
+              padding: "3px 12px",
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.5px",
+            }}
+          >
+            CLICK / ESC PARA CERRAR
+          </div>
+        </div>
       )}
 
       {/* Piggy */}
