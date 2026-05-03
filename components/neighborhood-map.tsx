@@ -211,11 +211,13 @@ export function NeighborhoodMap() {
   }, [])
 
   const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
+    // Change direction IMMEDIATELY - before anything else
+    setPiggyDirection(dir)
+    
     setPiggyPos((prev) => {
       const newX = prev.x + dx
       const newY = prev.y + dy
       if (isWalkable(newX, newY, grid)) {
-        setPiggyDirection(dir)
         triggerWalkAnimation()
         return { x: newX, y: newY }
       }
