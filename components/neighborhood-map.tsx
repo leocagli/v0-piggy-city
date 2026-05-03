@@ -424,7 +424,6 @@ function ZoneMarker({
             height={20}
           >
             <div
-              xmlns="http://www.w3.org/1999/xhtml"
               style={{
                 width: 20,
                 height: 20,
@@ -911,7 +910,6 @@ export function NeighborhoodMap() {
               <g transform={`translate(${PW / 2}, ${R})`}>
                 <foreignObject x={-11} y={-9} width={22} height={18}>
                   <div
-                    xmlns="http://www.w3.org/1999/xhtml"
                     style={{ width: 22, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
