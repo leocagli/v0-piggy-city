@@ -16,7 +16,6 @@ import {
   ChevronRight,
   MessageCircle,
 } from "lucide-react"
-import { NPCChat } from "./npc-chat"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
