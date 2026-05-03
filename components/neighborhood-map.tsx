@@ -382,10 +382,11 @@ function ZoneMarker({
         style={{
           display: "block",
           overflow: "visible",
-          ...(zone.id === "nature" && { marginLeft: "-90px", marginTop: "34px" }),
-          ...(zone.id === "home" && { marginLeft: "-136px", marginTop: "-6px" }),
-          ...(zone.id === "business" && { marginLeft: "39px", marginTop: "23px" }),
-          ...(zone.id === "abstract" && { marginLeft: "39px", marginTop: "23px" }),
+          ...(zone.id === "nature" && { marginLeft: "-148px", marginTop: "36px" }),
+          ...(zone.id === "home" && { marginLeft: "-136px", marginTop: "-8px" }),
+          ...(zone.id === "business" && { marginLeft: "294px", marginTop: "0px" }),
+          ...(zone.id === "abstract" && { marginLeft: "39px", marginTop: "21px" }),
+          ...(zone.id === "faq" && { marginLeft: "294px", marginTop: "0px" }),
         }}
       >
         {/* Circle (head of pin) */}
@@ -859,8 +860,8 @@ export function NeighborhoodMap() {
               border:    showPaths ? "2px dashed rgba(255,200,0,0.9)" : "none",
               padding:   0,
               transition: "transform 0.15s ease",
-              marginTop: "12px",
-              marginLeft: "16px",
+              marginTop: "-11px",
+              marginLeft: "-20px",
             }}
             onMouseEnter={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1.12)`)}
             onMouseLeave={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1)`)}
@@ -893,7 +894,7 @@ export function NeighborhoodMap() {
                 overflow: "visible",
                 pointerEvents: "none",
                 marginLeft: "39px",
-                marginTop: "23px",
+                marginTop: "21px",
               }}
             >
               {/* Circle border */}
