@@ -1130,7 +1130,13 @@ export function NeighborhoodMap() {
       </div>
 
       {/* NPC Leaf near the waterfall */}
-      <NPCLeaf x={7} y={5} cellW={cellW} cellH={cellH} />
+      {(() => {
+        const npcX = 7
+        const npcY = 5
+        const distance = Math.sqrt(Math.pow(piggyPos.x - npcX, 2) + Math.pow(piggyPos.y - npcY, 2))
+        const isNearby = distance < 2.5 // Show bubble when within ~2.5 cells
+        return <NPCLeaf x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
+      })()}
 
       {/* Bottom-right controls */}
       <div
