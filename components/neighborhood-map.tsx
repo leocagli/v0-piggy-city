@@ -94,43 +94,28 @@ const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
 
 // ── Animated Sprite Component ─────────────────────────────────────────────────
 interface AnimatedSpriteProps {
-  spriteSheet: string
-  frameCount: number
-  currentFrame: number
-  width: number
-  height: number
+  sprite: string
+  isMoving: boolean
+  direction: "up" | "down" | "left" | "right"
 }
 
-function AnimatedSprite({ spriteSheet, frameCount, currentFrame, width, height }: AnimatedSpriteProps) {
-  // Calculate the offset for the current frame
-  const frameWidth = width
-  const totalWidth = frameWidth * frameCount
-  const offsetX = currentFrame * frameWidth
-
+function AnimatedSprite({ sprite, isMoving, direction }: AnimatedSpriteProps) {
+  // Different walk animations for each direction
+  const animationName = isMoving ? `walk-${direction}` : "idle"
+  
   return (
-    <div
+    <img
+      src={sprite}
+      alt="Piggy"
+      draggable={false}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
-        overflow: "hidden",
-        position: "relative",
+        width: "clamp(80px, 9vw, 130px)",
+        height: "auto",
+        imageRendering: "pixelated",
+        animation: `${animationName} 0.6s ease-in-out infinite`,
+        userSelect: "none",
       }}
-    >
-      <img
-        src={spriteSheet}
-        alt="Character sprite"
-        draggable={false}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: `-${offsetX}px`,
-          width: `${totalWidth}px`,
-          height: `${height}px`,
-          imageRendering: "pixelated",
-          userSelect: "none",
-        }}
-      />
-    </div>
+    />
   )
 }
 
@@ -330,12 +315,12 @@ export function NeighborhoodMap() {
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  // Sprite based on direction - use walk animations (4-frame spritesheets)
-  const walkAnimationSheet = {
-    down: "/piggy-walk-front.png",
-    up: "/piggy-walk-back.png",
-    left: "/piggy-walk-left.png",
-    right: "/piggy-walk-right.png",
+  // Sprite based on direction - use individual frames
+  const spriteMap = {
+    down: "/sprites/front-1.png",
+    up: "/sprites/back-1.png",
+    left: "/sprites/left-1.png",
+    right: "/sprites/right-1.png",
   }[piggyDirection]
 
   // Piggy position in screen percentages
@@ -401,11 +386,9 @@ export function NeighborhoodMap() {
         }}
       >
         <AnimatedSprite
-          spriteSheet={walkAnimationSheet}
-          frameCount={4}
-          currentFrame={animationFrame}
-          width={100}
-          height={100}
+          sprite={spriteMap}
+          isMoving={isMoving}
+          direction={piggyDirection}
         />
       </div>
 
