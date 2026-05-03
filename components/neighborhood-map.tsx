@@ -180,7 +180,7 @@ export function NeighborhoodMap() {
         src="/neighborhood-background.png"
         alt="Mapa del vecindario"
         className="absolute inset-0 w-full h-full"
-        style={{ objectFit: "fill", pointerEvents: "none", userSelect: "none" }}
+        style={{ objectFit: "cover", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
         draggable={false}
       />
 
