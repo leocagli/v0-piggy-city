@@ -167,6 +167,8 @@ export function NeighborhoodMap() {
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
   const [animationFrame, setAnimationFrame] = useState(0)
   const [isMoving, setIsMoving] = useState(false)
+  const joystickRef = useRef<HTMLDivElement>(null)
+  const [joystickActive, setJoystickActive] = useState(false)
 
   const handleCellHover = useCallback((x: number, y: number) => setHoveredCell({ x, y }), [])
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
@@ -226,6 +228,44 @@ export function NeighborhoodMap() {
     }, 150)
     return () => clearInterval(animInterval)
   }, [isMoving])
+
+  // Joystick handler
+  const handleJoystickStart = useCallback(() => {
+    setJoystickActive(true)
+  }, [])
+
+  const handleJoystickMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!joystickRef.current || !joystickActive) return
+    
+    const rect = joystickRef.current.getBoundingClientRect()
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const x = e.clientX - rect.left - centerX
+    const y = e.clientY - rect.top - centerY
+    const distance = Math.sqrt(x * x + y * y)
+    const maxDistance = rect.width / 3
+
+    if (distance > 5) {
+      const angle = Math.atan2(y, x)
+      let dir: "down" | "up" | "left" | "right" | null = null
+      
+      // 8 directions, primarily focused on 4 cardinal
+      if (angle > -Math.PI / 4 && angle < Math.PI / 4) dir = "right"
+      else if (angle > Math.PI / 4 && angle < (3 * Math.PI) / 4) dir = "down"
+      else if (angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4) dir = "up"
+      else dir = "left"
+
+      if (dir) {
+        const dx = dir === "right" ? 1 : dir === "left" ? -1 : 0
+        const dy = dir === "down" ? 1 : dir === "up" ? -1 : 0
+        movePiggy(dx, dy, dir)
+      }
+    }
+  }, [joystickActive, movePiggy])
+
+  const handleJoystickEnd = useCallback(() => {
+    setJoystickActive(false)
+  }, [])
 
   // Compute cell percentages so the grid aligns to the image regardless of viewport
   const cellW = 100 / GRID_COLS
@@ -411,6 +451,31 @@ export function NeighborhoodMap() {
           {showPaths ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
           {showPaths ? "Ocultar caminos" : "Caminos"}
         </button>
+      </div>
+
+      {/* Bottom-left: Virtual Joystick */}
+      <div
+        ref={joystickRef}
+        className="absolute bottom-4 left-4 z-40 w-32 h-32 rounded-full pointer-events-auto touch-none select-none"
+        style={{
+          background: joystickActive ? "rgba(100, 150, 255, 0.15)" : "rgba(100, 100, 100, 0.08)",
+          border: "2px dashed rgba(100, 100, 100, 0.3)",
+          cursor: "grab",
+          userSelect: "none",
+        }}
+        onPointerDown={handleJoystickStart}
+        onPointerMove={handleJoystickMove}
+        onPointerUp={handleJoystickEnd}
+        onPointerLeave={handleJoystickEnd}
+      >
+        {/* Joystick indicator cross */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-50">
+          <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent" />
+          <div className="absolute h-full w-px bg-gradient-to-b from-transparent via-gray-400 to-transparent" />
+        </div>
+        
+        {/* Center dot */}
+        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 opacity-40" />
       </div>
     </div>
   )
