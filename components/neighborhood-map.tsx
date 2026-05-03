@@ -381,23 +381,39 @@ function ZoneMarker({
         viewBox={`0 0 ${PW} ${PH}`}
         style={{ display: "block", overflow: "visible" }}
       >
-        {/* Border/shadow layer */}
-        <path d={pinPath(PW, PH, R)} fill={zone.colorDark} />
-        {/* Main color fill (inset 2px) */}
-        <path
-          d={pinPath(PW - 4, PH - 3, R - 2)}
-          transform="translate(2, 2)"
+        {/* Circle (head of pin) */}
+        <circle
+          cx={PW / 2}
+          cy={R}
+          r={R}
+          fill={zone.colorDark}
+        />
+        {/* Circle fill (slightly inset for depth) */}
+        <circle
+          cx={PW / 2}
+          cy={R}
+          r={R - 2}
           fill={zone.color}
         />
-        {/* Shine highlight */}
+        {/* Shine on circle */}
         <circle
-          cx={PW / 2 - R * 0.2}
-          cy={CIRCLE_CY * 0.55}
+          cx={PW / 2 - R * 0.25}
+          cy={R * 0.4}
           r={R * 0.22}
           fill="rgba(255,255,255,0.3)"
         />
-        {/* Icon — centered perfectly in circle */}
-        <g transform={`translate(${PW / 2}, ${CIRCLE_CY})`}>
+        {/* Tail triangle pointing down */}
+        <polygon
+          points={`${PW / 2},${PW} ${PW / 2 - R * 0.45},${PW * 0.7} ${PW / 2 + R * 0.45},${PW * 0.7}`}
+          fill={zone.colorDark}
+        />
+        <polygon
+          points={`${PW / 2},${PW - 2} ${PW / 2 - R * 0.4},${PW * 0.72} ${PW / 2 + R * 0.4},${PW * 0.72}`}
+          fill={zone.color}
+        />
+
+        {/* Icon — centered in circle */}
+        <g transform={`translate(${PW / 2}, ${R})`}>
           <foreignObject
             x={-10}
             y={-10}
