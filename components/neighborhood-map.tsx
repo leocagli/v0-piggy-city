@@ -165,6 +165,8 @@ export function NeighborhoodMap() {
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null)
   const [piggyPos, setPiggyPos] = useState({ x: 12, y: 9 })
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
+  const [animationFrame, setAnimationFrame] = useState(0)
+  const [isMoving, setIsMoving] = useState(false)
 
   const handleCellHover = useCallback((x: number, y: number) => setHoveredCell({ x, y }), [])
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
@@ -175,6 +177,8 @@ export function NeighborhoodMap() {
       const newY = prev.y + dy
       if (isWalkable(newX, newY, grid)) {
         setPiggyDirection(dir)
+        setIsMoving(true)
+        setAnimationFrame(0)
         return { x: newX, y: newY }
       }
       return prev
@@ -210,6 +214,19 @@ export function NeighborhoodMap() {
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [movePiggy])
 
+  // Animation frame cycling
+  useEffect(() => {
+    if (!isMoving) return
+    const animInterval = setInterval(() => {
+      setAnimationFrame((prev) => {
+        const next = (prev + 1) % 4
+        if (next === 0) setIsMoving(false)
+        return next
+      })
+    }, 150)
+    return () => clearInterval(animInterval)
+  }, [isMoving])
+
   // Compute cell percentages so the grid aligns to the image regardless of viewport
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
@@ -221,6 +238,9 @@ export function NeighborhoodMap() {
     left: "/piggy-left.png",
     right: "/piggy-right.png",
   }[piggyDirection]
+
+  // Background position for spritesheet animation (4 frames, each 25% of the image width)
+  const bgPositionX = animationFrame * 25
 
   // Piggy position in screen percentages
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
@@ -284,16 +304,20 @@ export function NeighborhoodMap() {
           transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
-        <img
-          src={piggySprite}
-          alt="Piggy"
+        <div
           style={{
             width: "clamp(80px, 9vw, 130px)",
             height: "auto",
-            animation: "piggyFloat 3s ease-in-out infinite",
+            backgroundImage: piggyDirection === "down" ? `url(/piggy-walk-front.png)` : `url(${piggySprite})`,
+            backgroundSize: piggyDirection === "down" ? "400% 100%" : "100% 100%",
+            backgroundPosition: piggyDirection === "down" ? `${bgPositionX}% 0%` : "0% 0%",
+            aspectRatio: "1",
+            animation: piggyDirection === "down" ? "none" : "piggyFloat 3s ease-in-out infinite",
+            backgroundRepeat: "no-repeat",
             imageRendering: "pixelated",
+            WebkitImageRendering: "pixelated",
+            filter: "image-rendering: pixelated",
           }}
-          draggable={false}
         />
       </div>
 
