@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { NPCLeaf } from "./npc-leaf"
 import { NPCBusinessBear } from "./npc-business-bear"
+import { NPCHomeBear } from "./npc-home-bear"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -1146,6 +1147,15 @@ export function NeighborhoodMap() {
         const distance = Math.sqrt(Math.pow(piggyPos.x - npcX, 2) + Math.pow(piggyPos.y - npcY, 2))
         const isNearby = distance < 2.5
         return <NPCBusinessBear x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
+      })()}
+
+      {/* NPC Home Bear in the home zone */}
+      {(() => {
+        const npcX = 18
+        const npcY = 5
+        const distance = Math.sqrt(Math.pow(piggyPos.x - npcX, 2) + Math.pow(piggyPos.y - npcY, 2))
+        const isNearby = distance < 2.5
+        return <NPCHomeBear x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
       })()}
 
       {/* Bottom-right controls */}
