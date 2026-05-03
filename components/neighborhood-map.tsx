@@ -173,21 +173,21 @@ export function NeighborhoodMap() {
 
   return (
     // Root: full viewport, no overflow, no margins
-    <div className="fixed inset-0 overflow-hidden" style={{ background: "#000" }}>
+    <div className="fixed inset-0 overflow-hidden bg-gray-900 flex items-center justify-center">
 
-      {/* ── Background image — fills entire viewport ── */}
+      {/* ── Background image — maintains aspect ratio, fully visible ── */}
       <img
         src="/neighborhood-background.png"
         alt="Mapa del vecindario"
-        className="absolute inset-0 w-full h-full"
-        style={{ objectFit: "cover", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
+        className="w-full h-full"
+        style={{ objectFit: "contain", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
         draggable={false}
       />
 
       {/* ── Invisible hit-test grid (percentage-based, covers the image exactly) ── */}
       <div
         className="absolute inset-0"
-        style={{ cursor: showPaths ? "crosshair" : "default" }}
+        style={{ cursor: showPaths ? "crosshair" : "default", pointerEvents: "auto" }}
       >
         {grid.map((row, y) =>
           row.map((cell, x) => {
