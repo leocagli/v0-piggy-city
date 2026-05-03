@@ -163,13 +163,68 @@ export function NeighborhoodMap() {
   const [grid] = useState<CellType[][]>(initializeGrid)
   const [showPaths, setShowPaths] = useState(false)
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null)
+  const [piggyPos, setPiggyPos] = useState({ x: 12, y: 9 })
+  const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
 
   const handleCellHover = useCallback((x: number, y: number) => setHoveredCell({ x, y }), [])
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
 
+  const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
+    setPiggyPos((prev) => {
+      const newX = prev.x + dx
+      const newY = prev.y + dy
+      if (isWalkable(newX, newY, grid)) {
+        setPiggyDirection(dir)
+        return { x: newX, y: newY }
+      }
+      return prev
+    })
+  }, [grid])
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      switch (e.key.toLowerCase()) {
+        case "arrowup":
+        case "w":
+          movePiggy(0, -1, "up")
+          e.preventDefault()
+          break
+        case "arrowdown":
+        case "s":
+          movePiggy(0, 1, "down")
+          e.preventDefault()
+          break
+        case "arrowleft":
+        case "a":
+          movePiggy(-1, 0, "left")
+          e.preventDefault()
+          break
+        case "arrowright":
+        case "d":
+          movePiggy(1, 0, "right")
+          e.preventDefault()
+          break
+      }
+    }
+    window.addEventListener("keydown", handleKeyPress)
+    return () => window.removeEventListener("keydown", handleKeyPress)
+  }, [movePiggy])
+
   // Compute cell percentages so the grid aligns to the image regardless of viewport
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
+
+  // Sprite based on direction
+  const piggySprite = {
+    down: "/piggy.png",
+    up: "/piggy-back.png",
+    left: "/piggy-left.png",
+    right: "/piggy-right.png",
+  }[piggyDirection]
+
+  // Piggy position in screen percentages
+  const piggyScreenX = piggyPos.x * cellW + cellW / 2
+  const piggyScreenY = piggyPos.y * cellH + cellH / 2
 
   return (
     // Root: full viewport, no overflow, no margins
@@ -223,13 +278,14 @@ export function NeighborhoodMap() {
       <div
         className="absolute z-30 pointer-events-none"
         style={{
-          left: "50%",
-          top: "50%",
+          left: `${piggyScreenX}%`,
+          top: `${piggyScreenY}%`,
           transform: "translate(-50%, -62%)",
+          transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
         <img
-          src="/piggy.png"
+          src={piggySprite}
           alt="Piggy"
           style={{
             width: "clamp(80px, 9vw, 130px)",
@@ -295,8 +351,18 @@ export function NeighborhoodMap() {
         />
       </div>
 
-      {/* Bottom-right: toggle caminos + hover info */}
+      {/* Bottom-right: toggle caminos + hover info + controls */}
       <div className="absolute bottom-3 right-3 z-40 flex flex-col items-end gap-1.5 pointer-events-auto">
+        <div
+          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur-sm text-center"
+          style={{
+            background: "rgba(255,255,255,0.90)",
+            color: "#4a3500",
+            border: "1.5px solid rgba(0,0,0,0.12)",
+          }}
+        >
+          Usa WASD o flechas para mover
+        </div>
         {showPaths && hoveredCell && (
           <div
             className="px-2.5 py-1 rounded-lg text-xs font-semibold shadow-lg backdrop-blur-sm"
