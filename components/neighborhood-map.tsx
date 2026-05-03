@@ -13,6 +13,7 @@ import {
   Keyboard,
   Gamepad2,
   MousePointerClick,
+  ChevronRight,
 } from "lucide-react"
 
 const GRID_COLS = 24
@@ -73,34 +74,23 @@ const mapObjects: MapObject[] = [
   { id: "tree-top-4",  x: 14, y: 0,  width: 2, height: 2,  type: "tree",     zone: "home"     },
 ]
 
-// Only these zones are hard blockers — buildings + water
-// Everything else (grass, trees, rocks, bridge, fountain area) is walkable
 const BLOCKED_ZONES: { x: number; y: number; w: number; h: number }[] = [
-  // Water / cliff (top-left)
-  { x: 0, y: 0, w: 3, h: 11 },
-  // Business building (bottom-left)
-  { x: 1, y: 10, w: 7, h: 6 },
-  // Home house + shed (top-right)
-  { x: 14, y: 1, w: 9, h: 6 },
-  // Abstract portal zone (bottom-right)
-  { x: 15, y: 8, w: 9, h: 8 },
+  { x: 0,  y: 0,  w: 3,  h: 11 },
+  { x: 1,  y: 10, w: 7,  h: 6  },
+  { x: 14, y: 1,  w: 9,  h: 6  },
+  { x: 15, y: 8,  w: 9,  h: 8  },
 ]
 
 const initializeGrid = (): CellType[][] => {
-  // Start everything as walkable grass
   const grid: CellType[][] = Array.from({ length: GRID_ROWS }, () =>
     Array.from({ length: GRID_COLS }, () => "grass" as CellType)
   )
-
-  // Mark only the 4 hard-blocked zones
   for (const zone of BLOCKED_ZONES) {
     for (let dy = 0; dy < zone.h; dy++) {
       for (let dx = 0; dx < zone.w; dx++) {
         const gx = zone.x + dx
         const gy = zone.y + dy
-        if (gy < GRID_ROWS && gx < GRID_COLS) {
-          grid[gy][gx] = "object"
-        }
+        if (gy < GRID_ROWS && gx < GRID_COLS) grid[gy][gx] = "object"
       }
     }
   }
@@ -109,11 +99,10 @@ const initializeGrid = (): CellType[][] => {
 
 const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   if (x < 0 || x >= GRID_COLS || y < 0 || y >= GRID_ROWS) return false
-  // "object" and "water" are blocked; grass and path are both walkable
   return grid[y][x] !== "object" && grid[y][x] !== "water"
 }
 
-// ── Zone Definitions ─────────────────────────────────────────────────────────
+// ── Zone Definitions ──────────────────────────────────────────────────────────
 type ZoneId = "nature" | "home" | "business" | "abstract" | "faq"
 
 interface ZoneOption {
@@ -128,13 +117,14 @@ interface Zone {
   subtitle: string
   icon: ElementType
   color: string
-  bgColor: string
-  // Label position on the map (in grid coordinates, x and y)
+  colorDark: string
+  colorLight: string
   labelX: number
   labelY: number
-  // Trigger cell - where Piggy needs to be (or near) to interact
   triggerX: number
   triggerY: number
+  // "left" means dropdown opens to the left of the pin (for right-side zones)
+  dropDir: "left" | "right" | "center"
   options: ZoneOption[]
 }
 
@@ -143,14 +133,16 @@ const ZONES: Zone[] = [
     id: "nature",
     label: "NATURE",
     title: "Naturaleza",
-    subtitle: "Ahorro y crecimiento",
+    subtitle: "Ahorro y crecimiento. Aprende a hacer crecer tus recursos.",
     icon: Leaf,
-    color: "#16a34a",
-    bgColor: "#dcfce7",
+    color: "#2d8a4e",
+    colorDark: "#1a5c33",
+    colorLight: "#e8f5e2",
     labelX: 5,
     labelY: 3,
     triggerX: 5,
     triggerY: 7,
+    dropDir: "right",
     options: [
       { label: "Ahorro", description: "Aprende a guardar tus monedas para el futuro" },
       { label: "Inversión", description: "Haz que tus ahorros crezcan con el tiempo" },
@@ -161,14 +153,16 @@ const ZONES: Zone[] = [
     id: "home",
     label: "HOME",
     title: "Hogar",
-    subtitle: "Hábitos y rutina",
+    subtitle: "Hábitos y rutina. Construye hábitos saludables y organiza tu día a día.",
     icon: Home,
-    color: "#ea580c",
-    bgColor: "#ffedd5",
+    color: "#d4700a",
+    colorDark: "#9a4e00",
+    colorLight: "#fef3e2",
     labelX: 18,
     labelY: 2,
     triggerX: 15,
     triggerY: 7,
+    dropDir: "left",
     options: [
       { label: "Hábitos", description: "Construye rutinas que mejoren tu vida" },
       { label: "Rutina", description: "Organiza tu día para ser más efectivo" },
@@ -179,14 +173,16 @@ const ZONES: Zone[] = [
     id: "business",
     label: "BUSINESS",
     title: "Negocios",
-    subtitle: "Producto y productividad",
+    subtitle: "Productos, decisiones y productividad. Mejora tus habilidades y gestiona tus finanzas.",
     icon: Briefcase,
-    color: "#2563eb",
-    bgColor: "#dbeafe",
+    color: "#1a6fb5",
+    colorDark: "#0d4a80",
+    colorLight: "#e2f0fb",
     labelX: 4,
     labelY: 11,
     triggerX: 6,
     triggerY: 9,
+    dropDir: "right",
     options: [
       { label: "Producto", description: "Crea soluciones que la gente necesita" },
       { label: "Decisiones", description: "Toma decisiones inteligentes y rápidas" },
@@ -197,14 +193,16 @@ const ZONES: Zone[] = [
     id: "abstract",
     label: "ABSTRACT",
     title: "Abstracto",
-    subtitle: "Ideas y desafíos",
+    subtitle: "Ideas, estados y desafíos. Explora tu mente y supera desafíos.",
     icon: Sparkles,
-    color: "#9333ea",
-    bgColor: "#f3e8ff",
+    color: "#7b3fbe",
+    colorDark: "#52208a",
+    colorLight: "#f3eaff",
     labelX: 19,
     labelY: 10,
     triggerX: 14,
     triggerY: 10,
+    dropDir: "left",
     options: [
       { label: "Ideas", description: "Explora conceptos y pensamientos creativos" },
       { label: "Estados", description: "Comprende tus emociones y mentalidad" },
@@ -215,27 +213,28 @@ const ZONES: Zone[] = [
     id: "faq",
     label: "FUENTE",
     title: "Fuente Central",
-    subtitle: "Centro del pueblo",
+    subtitle: "Centro del pueblo. Aquí puedes planificar tu camino y ver tu progreso general.",
     icon: HelpCircle,
-    color: "#0891b2",
-    bgColor: "#cffafe",
+    color: "#0e87b5",
+    colorDark: "#075a7a",
+    colorLight: "#e0f5fc",
     labelX: 11,
     labelY: 9,
     triggerX: 11,
     triggerY: 9,
+    dropDir: "center",
     options: [
       { label: "Movimiento", description: "Usa WASD, flechas o el joystick virtual para mover a Piggy" },
-      { label: "Interacción", description: "Acércate a una zona y presiona E o haz click en la etiqueta" },
+      { label: "Interacción", description: "Acércate a una zona y presiona E o haz click en el pin" },
       { label: "Objetivo", description: "Explora cada zona del mapa y aprende sus lecciones únicas" },
     ],
   },
 ]
 
-// Manhattan distance between two grid cells
 const manhattanDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
 
-// ── Character Sprite Component ───────────────────────────────────────────────
+// ── Sprite ────────────────────────────────────────────────────────────────────
 const SPRITE_SIZE = 100
 
 const ALL_SPRITES = {
@@ -283,158 +282,7 @@ function CharacterSprite({
   )
 }
 
-// ── Zone Marker — teardrop map-pin style ─────────────────────────────────────
-function ZoneMarker({
-  zone,
-  isNear,
-  onClick,
-}: {
-  zone: Zone
-  isNear: boolean
-  onClick: () => void
-}) {
-  const Icon = zone.icon
-  const cellW = 100 / GRID_COLS
-  const cellH = 100 / GRID_ROWS
-
-  // Pin dimensions
-  const PIN_W = 68
-  const PIN_H = 80   // includes the pointed tail
-  const TAIL = 16    // height of the pointed tail below the circle
-  const CIRCLE_D = PIN_W  // circle diameter = full width
-  const BORDER = 3
-
-  return (
-    <button
-      onClick={onClick}
-      className="absolute pointer-events-auto cursor-pointer group"
-      style={{
-        left: `${zone.labelX * cellW + cellW / 2}%`,
-        top: `${zone.labelY * cellH + cellH / 2}%`,
-        // Anchor the tip of the pin to the position
-        transform: `translate(-50%, -${PIN_H}px)`,
-        zIndex: isNear ? 30 : 20,
-        animation: isNear ? "marker-pulse 1s ease-in-out infinite" : "none",
-      }}
-      aria-label={`Entrar a ${zone.title}`}
-    >
-      <svg
-        width={PIN_W + BORDER * 2}
-        height={PIN_H + BORDER * 2}
-        viewBox={`0 0 ${PIN_W + BORDER * 2} ${PIN_H + BORDER * 2}`}
-        style={{
-          filter: isNear
-            ? `drop-shadow(0 4px 8px ${zone.color}88)`
-            : "drop-shadow(0 3px 4px rgba(0,0,0,0.35))",
-          transition: "filter 0.2s ease",
-          overflow: "visible",
-        }}
-      >
-        {/* Outer border shape */}
-        <PinShape
-          x={BORDER}
-          y={BORDER}
-          w={PIN_W}
-          circleD={CIRCLE_D}
-          tail={TAIL}
-          fill={zone.color}
-          darken
-        />
-        {/* Inner fill — slightly lighter top half for depth */}
-        <PinShape
-          x={BORDER + 3}
-          y={BORDER + 3}
-          w={PIN_W - 6}
-          circleD={CIRCLE_D - 6}
-          tail={TAIL - 3}
-          fill={zone.color}
-          darken={false}
-        />
-      </svg>
-
-      {/* Icon + Label absolutely centered in the circle */}
-      <div
-        className="absolute flex flex-col items-center justify-center gap-0.5"
-        style={{
-          left: BORDER,
-          top: BORDER,
-          width: PIN_W,
-          height: CIRCLE_D,
-          pointerEvents: "none",
-        }}
-      >
-        <Icon
-          style={{ width: 22, height: 22, color: "#ffffff", flexShrink: 0 }}
-          strokeWidth={2.5}
-        />
-        <span
-          style={{
-            color: "#ffffff",
-            fontSize: "9px",
-            fontWeight: 800,
-            letterSpacing: "0.6px",
-            textTransform: "uppercase",
-            lineHeight: 1,
-            textShadow: "0 1px 2px rgba(0,0,0,0.4)",
-          }}
-        >
-          {zone.label}
-        </span>
-      </div>
-
-      {/* "PRESS E" badge when near */}
-      {isNear && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2"
-          style={{
-            top: PIN_H + BORDER * 2 + 4,
-            background: "#ffcc02",
-            color: "#4e342e",
-            border: "2.5px solid #4e342e",
-            borderRadius: "3px",
-            padding: "2px 8px",
-            fontSize: "9px",
-            fontWeight: 800,
-            letterSpacing: "0.5px",
-            whiteSpace: "nowrap",
-            boxShadow: "0 2px 0 #4e342e",
-          }}
-        >
-          PRESS E
-        </div>
-      )}
-    </button>
-  )
-}
-
-// Helper: draws the teardrop SVG path
-function PinShape({
-  x, y, w, circleD, tail, fill, darken,
-}: {
-  x: number; y: number; w: number; circleD: number; tail: number; fill: string; darken: boolean
-}) {
-  const cx = x + w / 2
-  const r = circleD / 2
-  const cy = y + r
-  const tipY = cy + r + tail
-
-  // Two arcs forming the circle + pointed tip
-  const d = [
-    `M ${cx} ${tipY}`,
-    `L ${cx - r * 0.35} ${cy + r * 0.75}`,
-    `A ${r} ${r} 0 1 1 ${cx + r * 0.35} ${cy + r * 0.75}`,
-    "Z",
-  ].join(" ")
-
-  return (
-    <path
-      d={d}
-      fill={darken ? darkenColor(fill, 0.3) : fill}
-    />
-  )
-}
-
-// Darken a hex color by a factor 0-1
+// ── Darken helper ─────────────────────────────────────────────────────────────
 function darkenColor(hex: string, factor: number): string {
   const n = parseInt(hex.replace("#", ""), 16)
   const r = Math.max(0, Math.floor(((n >> 16) & 0xff) * (1 - factor)))
@@ -443,9 +291,163 @@ function darkenColor(hex: string, factor: number): string {
   return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`
 }
 
-// ── Zone Modal - Pixel Art Style ─────────────────────────────────────────────
-function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
+// ── Pin SVG path ──────────────────────────────────────────────────────────────
+function pinPath(w: number, h: number, r: number): string {
+  // w = total width, h = total height (including tail), r = corner radius of top circle
+  // The pin is a circle on top + a pointed tail at the bottom center
+  const cx = w / 2
+  const circleBottom = h - (h - w) * 0.2 - r * 0.3
+  const tailH = h - circleBottom + r * 0.3
+  return [
+    `M ${cx} ${h}`,
+    `L ${cx - r * 0.5} ${circleBottom}`,
+    `A ${r} ${r} 0 1 1 ${cx + r * 0.5} ${circleBottom}`,
+    "Z",
+  ].join(" ")
+}
+
+// ── Zone Marker — compact icon-only pin ───────────────────────────────────────
+function ZoneMarker({
+  zone,
+  isNear,
+  isOpen,
+  onClick,
+}: {
+  zone: Zone
+  isNear: boolean
+  isOpen: boolean
+  onClick: () => void
+}) {
   const Icon = zone.icon
+  const cellW = 100 / GRID_COLS
+  const cellH = 100 / GRID_ROWS
+
+  const PW = 44   // pin width
+  const PH = 56   // pin height (circle + tail)
+  const R  = PW / 2
+
+  const scale = isOpen ? 1.12 : isNear ? 1.06 : 1
+
+  return (
+    <button
+      onClick={onClick}
+      className="absolute pointer-events-auto cursor-pointer"
+      style={{
+        left: `${zone.labelX * cellW + cellW / 2}%`,
+        top: `${zone.labelY * cellH + cellH / 2}%`,
+        transform: `translate(-50%, -${PH}px) scale(${scale})`,
+        transformOrigin: "bottom center",
+        zIndex: isOpen ? 40 : isNear ? 30 : 20,
+        transition: "transform 0.15s ease",
+        animation: isNear && !isOpen ? "marker-pulse 1.2s ease-in-out infinite" : "none",
+      }}
+      aria-label={`Entrar a ${zone.title}`}
+    >
+      {/* Shadow */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: -4,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: PW * 0.6,
+          height: 6,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.25)",
+          filter: "blur(3px)",
+        }}
+      />
+
+      {/* Pin SVG */}
+      <svg
+        width={PW}
+        height={PH}
+        viewBox={`0 0 ${PW} ${PH}`}
+        style={{ display: "block", overflow: "visible" }}
+      >
+        {/* Border */}
+        <path
+          d={pinPath(PW, PH, R)}
+          fill={zone.colorDark}
+        />
+        {/* Main fill */}
+        <path
+          d={pinPath(PW - 4, PH - 3, R - 2)}
+          transform="translate(2, 2)"
+          fill={zone.color}
+        />
+        {/* Shine */}
+        <circle
+          cx={PW / 2 - R * 0.2}
+          cy={R * 0.45}
+          r={R * 0.22}
+          fill="rgba(255,255,255,0.28)"
+        />
+      </svg>
+
+      {/* Icon centered in pin circle */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: PW,
+          height: PW,  // just the circle part
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+        }}
+      >
+        <Icon
+          style={{ width: 18, height: 18, color: "#ffffff" }}
+          strokeWidth={2.5}
+        />
+      </div>
+
+      {/* "E" key badge when near and not open */}
+      {isNear && !isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: -10,
+            right: -10,
+            width: 18,
+            height: 18,
+            borderRadius: "3px",
+            background: "#ffcc02",
+            border: `2px solid ${zone.colorDark}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "8px",
+            fontWeight: 900,
+            color: zone.colorDark,
+            letterSpacing: "0.3px",
+            boxShadow: `0 2px 0 ${zone.colorDark}`,
+          }}
+        >
+          E
+        </div>
+      )}
+    </button>
+  )
+}
+
+// ── Zone Dropdown Panel — floats next to the pin ──────────────────────────────
+function ZoneDropdown({
+  zone,
+  onClose,
+}: {
+  zone: Zone
+  onClose: () => void
+}) {
+  const Icon = zone.icon
+  const cellW = 100 / GRID_COLS
+  const cellH = 100 / GRID_ROWS
+  const PH = 56
+
+  const isFAQ = zone.id === "faq"
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -455,149 +457,191 @@ function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
     return () => document.removeEventListener("keydown", handleEsc)
   }, [onClose])
 
-  const isFAQ = zone.id === "faq"
+  // Position: anchored to pin tip, panel offset to left/right/center
+  const pinLeft = `${zone.labelX * cellW + cellW / 2}%`
+  const pinTop  = `${zone.labelY * cellH + cellH / 2}%`
+
+  // Horizontal offset from pin center
+  const offsetX = zone.dropDir === "left"
+    ? "calc(-100% - 12px)"
+    : zone.dropDir === "right"
+      ? "12px"
+      : "-50%"
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(30, 20, 10, 0.75)" }}
-      onClick={onClose}
+      className="absolute pointer-events-auto"
+      style={{
+        left: pinLeft,
+        top: pinTop,
+        transform: `translate(${offsetX}, -${PH + 8}px)`,
+        zIndex: 50,
+        width: 220,
+      }}
     >
-      {/* Pixel art window frame */}
+      {/* Panel */}
       <div
-        className="relative w-full max-w-sm"
         style={{
-          background: "#f5e6d3",
-          border: "6px solid #4e342e",
-          borderRadius: "4px",
-          boxShadow: "inset -4px -4px 0 #d7ccc8, inset 4px 4px 0 #fff8e1, 0 8px 0 #3e2723, 0 12px 24px rgba(0,0,0,0.4)",
+          background: "#fffdf6",
+          border: `4px solid ${zone.colorDark}`,
+          borderRadius: "6px",
+          boxShadow: `4px 4px 0 ${zone.colorDark}, 0 8px 20px rgba(0,0,0,0.3)`,
+          overflow: "hidden",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header bar */}
+        {/* Header */}
         <div
-          className="flex items-center gap-3 px-4 py-3"
           style={{
-            background: "#5d4037",
-            borderBottom: "4px solid #4e342e",
-            boxShadow: "inset 0 -3px 0 #3e2723, inset 0 3px 0 #8d6e63",
+            background: zone.color,
+            padding: "8px 10px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            borderBottom: `3px solid ${zone.colorDark}`,
           }}
         >
           <div
-            className="w-10 h-10 flex items-center justify-center shrink-0"
             style={{
-              background: "#ffcc02",
-              border: "3px solid #4e342e",
-              borderRadius: "2px",
-              boxShadow: "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066",
+              width: 30,
+              height: 30,
+              borderRadius: "4px",
+              background: "rgba(255,255,255,0.2)",
+              border: "2px solid rgba(255,255,255,0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
           >
-            <Icon className="w-5 h-5" style={{ color: "#4e342e" }} strokeWidth={3} />
+            <Icon style={{ width: 16, height: 16, color: "#ffffff" }} strokeWidth={2.5} />
           </div>
-          <div className="flex-1 min-w-0">
-            <h2
-              className="text-lg leading-tight"
-              style={{ color: "#fff8e1", fontWeight: 800, letterSpacing: "0.5px" }}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                color: "#ffffff",
+                fontSize: "12px",
+                fontWeight: 800,
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                lineHeight: 1.1,
+              }}
             >
               {zone.title}
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: "#d7ccc8", fontWeight: 600 }}>
+            </div>
+            <div
+              style={{
+                color: "rgba(255,255,255,0.85)",
+                fontSize: "9px",
+                fontWeight: 500,
+                lineHeight: 1.3,
+                marginTop: 1,
+              }}
+            >
               {zone.subtitle}
-            </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform hover:scale-110 active:scale-90"
             style={{
-              background: "#c62828",
-              border: "3px solid #4e342e",
-              borderRadius: "2px",
-              boxShadow: "inset -2px -2px 0 #b71c1c, inset 2px 2px 0 #ef5350",
+              width: 22,
+              height: 22,
+              borderRadius: "3px",
+              background: "rgba(0,0,0,0.2)",
+              border: "2px solid rgba(255,255,255,0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
             }}
             aria-label="Cerrar"
           >
-            <X className="w-4 h-4" style={{ color: "#fff8e1" }} strokeWidth={3} />
+            <X style={{ width: 10, height: 10, color: "#ffffff" }} strokeWidth={3} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-4">
-          {isFAQ && (
-            <div
-              className="mb-4 p-3"
-              style={{
-                background: "#fff8e1",
-                border: "3px solid #4e342e",
-                borderRadius: "2px",
-                boxShadow: "inset -2px -2px 0 #f5e6d3, inset 2px 2px 0 #fffde7",
-              }}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Keyboard className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
-                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
-                  Teclado: WASD o flechas
-                </span>
-              </div>
-              <div className="flex items-center gap-3 mb-2">
-                <Gamepad2 className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
-                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
-                  Joystick virtual (abajo izquierda)
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <MousePointerClick className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
-                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
-                  Click en etiqueta para entrar
-                </span>
-              </div>
+        {/* FAQ controls row */}
+        {isFAQ && (
+          <div
+            style={{
+              padding: "6px 10px",
+              borderBottom: `2px solid ${zone.colorDark}33`,
+              background: zone.colorLight,
+              display: "flex",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Keyboard style={{ width: 11, height: 11, color: zone.colorDark }} strokeWidth={2} />
+              <span style={{ fontSize: "9px", fontWeight: 700, color: zone.colorDark }}>WASD</span>
             </div>
-          )}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Gamepad2 style={{ width: 11, height: 11, color: zone.colorDark }} strokeWidth={2} />
+              <span style={{ fontSize: "9px", fontWeight: 700, color: zone.colorDark }}>JOYSTICK</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <MousePointerClick style={{ width: 11, height: 11, color: zone.colorDark }} strokeWidth={2} />
+              <span style={{ fontSize: "9px", fontWeight: 700, color: zone.colorDark }}>CLICK</span>
+            </div>
+          </div>
+        )}
 
-          <div className="space-y-2">
-            {zone.options.map((option) => (
-              <div
-                key={option.label}
-                className="p-3 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  background: "#fff8e1",
-                  border: "3px solid #4e342e",
-                  borderRadius: "2px",
-                  boxShadow: "inset -2px -2px 0 #f5e6d3, inset 2px 2px 0 #fffde7, 0 3px 0 #4e342e",
-                }}
-              >
-                <div style={{ color: "#5d4037", fontSize: "13px", fontWeight: 800, marginBottom: "2px" }}>
+        {/* Options */}
+        <div style={{ padding: "6px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {zone.options.map((option) => (
+            <div
+              key={option.label}
+              style={{
+                padding: "7px 10px",
+                borderRadius: "4px",
+                background: zone.colorLight,
+                border: `2px solid ${zone.colorDark}33`,
+                cursor: "pointer",
+                transition: "transform 0.1s ease",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 6,
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.transform = "scale(1.02)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.transform = "scale(1)")}
+            >
+              <ChevronRight
+                style={{ width: 10, height: 10, color: zone.color, flexShrink: 0, marginTop: 2 }}
+                strokeWidth={3}
+              />
+              <div>
+                <div style={{ color: zone.colorDark, fontSize: "11px", fontWeight: 800, lineHeight: 1.1 }}>
                   {option.label}
                 </div>
-                <div style={{ color: "#6d4c41", fontSize: "11px", fontWeight: 500, lineHeight: 1.4 }}>
+                <div style={{ color: "#6d5c4e", fontSize: "9px", fontWeight: 500, lineHeight: 1.35, marginTop: 1 }}>
                   {option.description}
                 </div>
               </div>
-            ))}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="mt-4 w-full py-3 transition-transform hover:scale-[1.02] active:scale-95"
-            style={{
-              background: "#ffcc02",
-              color: "#4e342e",
-              border: "4px solid #4e342e",
-              borderRadius: "2px",
-              boxShadow: "inset -3px -3px 0 #e6b800, inset 3px 3px 0 #ffe066, 0 4px 0 #4e342e",
-              fontWeight: 800,
-              fontSize: "13px",
-              letterSpacing: "0.5px",
-            }}
-          >
-            CERRAR
-          </button>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Pixel-style tail pointing up to pin */}
+      <div
+        style={{
+          position: "absolute",
+          top: -8,
+          left: zone.dropDir === "left" ? "auto" : zone.dropDir === "right" ? 18 : "50%",
+          right: zone.dropDir === "left" ? 18 : "auto",
+          transform: zone.dropDir === "center" ? "translateX(-50%)" : "none",
+          width: 0,
+          height: 0,
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderBottom: `8px solid ${zone.colorDark}`,
+        }}
+      />
     </div>
   )
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main component ─────────────────────────────────────────────────────────────
 export function NeighborhoodMap() {
   const [grid] = useState<CellType[][]>(initializeGrid)
   const [showPaths, setShowPaths] = useState(false)
@@ -605,7 +649,7 @@ export function NeighborhoodMap() {
   const [piggyPos, setPiggyPos] = useState({ x: 11, y: 9 })
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
   const [isMoving, setIsMoving] = useState(false)
-  const [activeZone, setActiveZone] = useState<Zone | null>(null)
+  const [openZone, setOpenZone] = useState<Zone | null>(null)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
   const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -616,9 +660,7 @@ export function NeighborhoodMap() {
   const triggerWalkAnimation = useCallback(() => {
     if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     setIsMoving(true)
-    moveTimeoutRef.current = setTimeout(() => {
-      setIsMoving(false)
-    }, 350)
+    moveTimeoutRef.current = setTimeout(() => setIsMoving(false), 350)
   }, [])
 
   const movePiggy = useCallback(
@@ -637,93 +679,60 @@ export function NeighborhoodMap() {
     [grid, triggerWalkAnimation]
   )
 
-  // Determine the closest zone Piggy is near (within 2 cells)
   const nearestZone = (() => {
     let closest: Zone | null = null
     let minDist = Infinity
     for (const z of ZONES) {
       const d = manhattanDist(piggyPos, { x: z.triggerX, y: z.triggerY })
-      if (d <= 2 && d < minDist) {
-        minDist = d
-        closest = z
-      }
+      if (d <= 2 && d < minDist) { minDist = d; closest = z }
     }
     return closest
   })()
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // If a modal is open, ignore movement keys
-      if (activeZone) return
-
+      if (openZone) {
+        if (e.key === "Escape") { setOpenZone(null); e.preventDefault() }
+        return
+      }
       const key = e.key.toLowerCase()
       switch (key) {
-        case "arrowup":
-        case "w":
-          movePiggy(0, -1, "up")
-          e.preventDefault()
-          break
-        case "arrowdown":
-        case "s":
-          movePiggy(0, 1, "down")
-          e.preventDefault()
-          break
-        case "arrowleft":
-        case "a":
-          movePiggy(-1, 0, "left")
-          e.preventDefault()
-          break
-        case "arrowright":
-        case "d":
-          movePiggy(1, 0, "right")
-          e.preventDefault()
-          break
-        case "e":
-        case "enter":
-          if (nearestZone) {
-            setActiveZone(nearestZone)
-            e.preventDefault()
-          }
+        case "arrowup":    case "w": movePiggy(0, -1, "up");    e.preventDefault(); break
+        case "arrowdown":  case "s": movePiggy(0,  1, "down");  e.preventDefault(); break
+        case "arrowleft":  case "a": movePiggy(-1, 0, "left");  e.preventDefault(); break
+        case "arrowright": case "d": movePiggy(1,  0, "right"); e.preventDefault(); break
+        case "e": case "enter":
+          if (nearestZone) { setOpenZone(nearestZone); e.preventDefault() }
           break
       }
     }
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [movePiggy, nearestZone, activeZone])
+  }, [movePiggy, nearestZone, openZone])
 
   useEffect(() => {
-    return () => {
-      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
-    }
+    return () => { if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current) }
   }, [])
 
-  const handleJoystickStart = useCallback(() => {
-    setJoystickActive(true)
-  }, [])
+  const handleJoystickStart = useCallback(() => setJoystickActive(true), [])
 
   const handleJoystickMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!joystickRef.current || !joystickActive) return
-
       const rect = joystickRef.current.getBoundingClientRect()
-      const centerX = rect.width / 2
-      const centerY = rect.height / 2
-      const x = e.clientX - rect.left - centerX
-      const y = e.clientY - rect.top - centerY
+      const x = e.clientX - rect.left - rect.width / 2
+      const y = e.clientY - rect.top - rect.height / 2
       const distance = Math.sqrt(x * x + y * y)
-
       if (distance > 5) {
         const angle = Math.atan2(y, x)
         let dir: "down" | "up" | "left" | "right" | null = null
-
-        if (angle > -Math.PI / 4 && angle < Math.PI / 4) dir = "right"
-        else if (angle > Math.PI / 4 && angle < (3 * Math.PI) / 4) dir = "down"
+        if      (angle > -Math.PI / 4 && angle < Math.PI / 4)       dir = "right"
+        else if (angle > Math.PI / 4 && angle < (3 * Math.PI) / 4)  dir = "down"
         else if (angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4) dir = "up"
-        else dir = "left"
-
+        else                                                           dir = "left"
         if (dir) {
           const dx = dir === "right" ? 1 : dir === "left" ? -1 : 0
-          const dy = dir === "down" ? 1 : dir === "up" ? -1 : 0
+          const dy = dir === "down"  ? 1 : dir === "up"   ? -1 : 0
           movePiggy(dx, dy, dir)
         }
       }
@@ -731,29 +740,21 @@ export function NeighborhoodMap() {
     [joystickActive, movePiggy]
   )
 
-  const handleJoystickEnd = useCallback(() => {
-    setJoystickActive(false)
-  }, [])
+  const handleJoystickEnd = useCallback(() => setJoystickActive(false), [])
 
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
-
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-gray-900 flex items-center justify-center">
-      {/* Background image */}
+      {/* Background */}
       <img
         src="/neighborhood-background.png"
         alt="Mapa del vecindario"
         className="w-full h-full"
-        style={{
-          objectFit: "contain",
-          objectPosition: "center",
-          pointerEvents: "none",
-          userSelect: "none",
-        }}
+        style={{ objectFit: "contain", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
         draggable={false}
       />
 
@@ -765,24 +766,19 @@ export function NeighborhoodMap() {
         {grid.map((row, y) =>
           row.map((cell, x) => {
             const walkable = isWalkable(x, y, grid)
-            const isPath = cell === "path"
             const isHovered = hoveredCell?.x === x && hoveredCell?.y === y
-
             let bg = "transparent"
-            if (showPaths && isPath) bg = "rgba(255,215,60,0.22)"
-            if (showPaths && isHovered) bg = walkable ? "rgba(80,255,120,0.35)" : "rgba(255,60,60,0.35)"
-
+            if (showPaths) bg = walkable ? "rgba(255,215,60,0.15)" : "rgba(255,60,60,0.18)"
+            if (showPaths && isHovered) bg = walkable ? "rgba(80,255,120,0.4)" : "rgba(255,60,60,0.5)"
             return (
               <div
                 key={`${x}-${y}`}
                 className="absolute"
                 style={{
-                  left: `${x * cellW}%`,
-                  top: `${y * cellH}%`,
-                  width: `${cellW}%`,
-                  height: `${cellH}%`,
+                  left: `${x * cellW}%`, top: `${y * cellH}%`,
+                  width: `${cellW}%`, height: `${cellH}%`,
                   backgroundColor: bg,
-                  outline: showPaths && isPath ? "1px solid rgba(200,160,40,0.3)" : "none",
+                  outline: showPaths ? `1px solid rgba(0,0,0,0.08)` : "none",
                 }}
                 onMouseEnter={() => handleCellHover(x, y)}
                 onMouseLeave={handleCellLeave}
@@ -792,17 +788,23 @@ export function NeighborhoodMap() {
         )}
       </div>
 
-      {/* Zone markers - positioned over each building */}
+      {/* Zone pins */}
       {ZONES.map((zone) => (
         <ZoneMarker
           key={zone.id}
           zone={zone}
           isNear={nearestZone?.id === zone.id}
-          onClick={() => setActiveZone(zone)}
+          isOpen={openZone?.id === zone.id}
+          onClick={() => setOpenZone((prev) => (prev?.id === zone.id ? null : zone))}
         />
       ))}
 
-      {/* Piggy character */}
+      {/* Zone dropdown panels */}
+      {openZone && (
+        <ZoneDropdown zone={openZone} onClose={() => setOpenZone(null)} />
+      )}
+
+      {/* Piggy */}
       <div
         className="absolute z-30 pointer-events-none"
         style={{
@@ -815,104 +817,110 @@ export function NeighborhoodMap() {
         <CharacterSprite direction={piggyDirection} isMoving={isMoving} />
       </div>
 
-      {/* Bottom-right: controls hint + path toggle - Pixel Art Style */}
-      <div className="absolute bottom-3 right-3 z-40 flex flex-col items-end gap-2 pointer-events-auto">
-        <div
-          className="px-3 py-2 text-center"
-          style={{
-            background: "#f5e6d3",
-            color: "#4e342e",
-            border: "3px solid #4e342e",
-            borderRadius: "2px",
-            boxShadow: "inset -2px -2px 0 #d7ccc8, inset 2px 2px 0 #fff8e1, 0 3px 0 #3e2723",
-            fontSize: "10px",
-            fontWeight: 700,
-            letterSpacing: "0.3px",
-          }}
-        >
-          WASD/FLECHAS | E = ENTRAR
-        </div>
+      {/* Bottom-right controls */}
+      <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2 pointer-events-auto">
         {showPaths && hoveredCell && (
           <div
-            className="px-3 py-1.5"
             style={{
-              background: isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "#81c784" : "#e57373",
+              background: isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "#2d8a4e" : "#c0392b",
               color: "#fff",
-              border: "3px solid #4e342e",
-              borderRadius: "2px",
-              boxShadow: "0 3px 0 #3e2723",
-              fontSize: "10px",
-              fontWeight: 700,
+              border: "3px solid #3e2723",
+              borderRadius: "3px",
+              padding: "3px 8px",
+              fontSize: "9px",
+              fontWeight: 800,
+              boxShadow: "0 2px 0 #3e2723",
             }}
           >
-            ({hoveredCell.x}, {hoveredCell.y}) {isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "OK" : "X"}
+            {hoveredCell.x},{hoveredCell.y} {isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "OK" : "X"}
           </div>
         )}
-        <button
-          onClick={() => setShowPaths((v) => !v)}
-          className="flex items-center gap-2 px-3 py-2 transition-transform hover:scale-105 active:scale-95"
+
+        <div
           style={{
-            background: showPaths ? "#ffcc02" : "#f5e6d3",
-            color: "#4e342e",
+            background: "#fffdf6",
             border: "3px solid #4e342e",
-            borderRadius: "2px",
-            boxShadow: showPaths
-              ? "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066, 0 3px 0 #3e2723"
-              : "inset -2px -2px 0 #d7ccc8, inset 2px 2px 0 #fff8e1, 0 3px 0 #3e2723",
-            fontSize: "10px",
+            borderRadius: "3px",
+            padding: "4px 10px",
+            fontSize: "9px",
             fontWeight: 800,
+            color: "#4e342e",
             letterSpacing: "0.3px",
+            boxShadow: "0 3px 0 #3e2723",
           }}
         >
-          {showPaths ? <Eye className="w-4 h-4" strokeWidth={3} /> : <EyeOff className="w-4 h-4" strokeWidth={3} />}
-          {showPaths ? "OCULTAR" : "CAMINOS"}
+          WASD | E = ENTRAR
+        </div>
+
+        <button
+          onClick={() => setShowPaths((v) => !v)}
+          style={{
+            background: showPaths ? "#ffcc02" : "#fffdf6",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "3px",
+            padding: "4px 8px",
+            fontSize: "9px",
+            fontWeight: 800,
+            boxShadow: showPaths
+              ? "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe599, 0 3px 0 #3e2723"
+              : "0 3px 0 #3e2723",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+          }}
+        >
+          {showPaths
+            ? <Eye style={{ width: 12, height: 12 }} strokeWidth={3} />
+            : <EyeOff style={{ width: 12, height: 12 }} strokeWidth={3} />
+          }
         </button>
       </div>
 
-      {/* Bottom-left: virtual joystick - Pixel Art Style */}
+      {/* Bottom-left: virtual joystick */}
       <div
         ref={joystickRef}
-        className="absolute bottom-4 left-4 z-40 w-28 h-28 pointer-events-auto touch-none select-none"
+        className="absolute bottom-4 left-4 z-40 pointer-events-auto touch-none select-none"
         style={{
-          background: joystickActive ? "#5d4037" : "#f5e6d3",
+          width: 96,
+          height: 96,
+          background: joystickActive ? "#5d4037" : "#fffdf6",
           border: "4px solid #4e342e",
           borderRadius: "50%",
           boxShadow: joystickActive
-            ? "inset -4px -4px 0 #3e2723, inset 4px 4px 0 #8d6e63, 0 4px 0 #3e2723"
-            : "inset -4px -4px 0 #d7ccc8, inset 4px 4px 0 #fff8e1, 0 4px 0 #4e342e",
+            ? "inset -3px -3px 0 #3e2723, inset 3px 3px 0 #8d6e63, 0 4px 0 #3e2723"
+            : "inset -3px -3px 0 #d7ccc8, inset 3px 3px 0 #fff8e1, 0 4px 0 #4e342e",
           cursor: "grab",
           userSelect: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "absolute",
         }}
         onPointerDown={handleJoystickStart}
         onPointerMove={handleJoystickMove}
         onPointerUp={handleJoystickEnd}
         onPointerLeave={handleJoystickEnd}
       >
-        {/* D-pad style cross */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="absolute w-1/2 h-2"
-            style={{ background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: "1px" }}
-          />
-          <div
-            className="absolute h-1/2 w-2"
-            style={{ background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: "1px" }}
-          />
-        </div>
-        {/* Center circle */}
-        <div
-          className="absolute top-1/2 left-1/2 w-5 h-5 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
+        {/* D-pad cross */}
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <div style={{
+            position: "absolute", top: "50%", left: "25%", right: "25%", height: 6,
+            marginTop: -3, background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: 2,
+          }} />
+          <div style={{
+            position: "absolute", left: "50%", top: "25%", bottom: "25%", width: 6,
+            marginLeft: -3, background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: 2,
+          }} />
+          <div style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: 18, height: 18, marginTop: -9, marginLeft: -9,
             background: joystickActive ? "#ffcc02" : "#bcaaa4",
-            border: "2px solid #4e342e",
-            borderRadius: "50%",
-            boxShadow: joystickActive ? "inset -1px -1px 0 #e6b800, inset 1px 1px 0 #ffe066" : "none",
-          }}
-        />
+            border: "2px solid #4e342e", borderRadius: "50%",
+          }} />
+        </div>
       </div>
-
-      {/* Active zone modal */}
-      {activeZone && <ZoneModal zone={activeZone} onClose={() => setActiveZone(null)} />}
     </div>
   )
 }
