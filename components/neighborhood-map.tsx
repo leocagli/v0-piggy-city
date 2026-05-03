@@ -73,24 +73,32 @@ const mapObjects: MapObject[] = [
   { id: "tree-top-4",  x: 14, y: 0,  width: 2, height: 2,  type: "tree",     zone: "home"     },
 ]
 
+// Only these zones are hard blockers — buildings + water
+// Everything else (grass, trees, rocks, bridge, fountain area) is walkable
+const BLOCKED_ZONES: { x: number; y: number; w: number; h: number }[] = [
+  // Water / cliff (top-left)
+  { x: 0, y: 0, w: 3, h: 11 },
+  // Business building (bottom-left)
+  { x: 1, y: 10, w: 7, h: 6 },
+  // Home house + shed (top-right)
+  { x: 14, y: 1, w: 9, h: 6 },
+  // Abstract portal zone (bottom-right)
+  { x: 15, y: 8, w: 9, h: 8 },
+]
+
 const initializeGrid = (): CellType[][] => {
+  // Start everything as walkable grass
   const grid: CellType[][] = Array.from({ length: GRID_ROWS }, () =>
     Array.from({ length: GRID_COLS }, () => "grass" as CellType)
   )
-  for (let y = 0; y < 10; y++) for (let x = 0; x < 3; x++) grid[y][x] = "water"
-  for (let x = 3; x < GRID_COLS - 2; x++) { grid[8][x] = "path"; grid[9][x] = "path" }
-  for (let y = 1; y < GRID_ROWS - 1; y++) { grid[y][10] = "path"; grid[y][11] = "path"; grid[y][12] = "path" }
-  for (let x = 10; x < 16; x++) { grid[1][x] = "path"; grid[2][x] = "path" }
-  for (let y = 5; y < 9; y++) { grid[y][5] = "path"; grid[y][6] = "path" }
-  for (let y = 9; y < 14; y++) { grid[y][7] = "path"; grid[y][8] = "path" }
-  for (let y = 9; y < 14; y++) { grid[y][13] = "path"; grid[y][14] = "path" }
-  for (let x = 9; x < 14; x++) { grid[15][x] = "path"; grid[16][x] = "path"; grid[17][x] = "path" }
-  for (const obj of mapObjects) {
-    for (let dy = 0; dy < obj.height; dy++) {
-      for (let dx = 0; dx < obj.width; dx++) {
-        const gx = obj.x + dx
-        const gy = obj.y + dy
-        if (gy < GRID_ROWS && gx < GRID_COLS && obj.type !== "bridge") {
+
+  // Mark only the 4 hard-blocked zones
+  for (const zone of BLOCKED_ZONES) {
+    for (let dy = 0; dy < zone.h; dy++) {
+      for (let dx = 0; dx < zone.w; dx++) {
+        const gx = zone.x + dx
+        const gy = zone.y + dy
+        if (gy < GRID_ROWS && gx < GRID_COLS) {
           grid[gy][gx] = "object"
         }
       }
@@ -101,7 +109,8 @@ const initializeGrid = (): CellType[][] => {
 
 const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   if (x < 0 || x >= GRID_COLS || y < 0 || y >= GRID_ROWS) return false
-  return grid[y][x] === "path"
+  // "object" and "water" are blocked; grass and path are both walkable
+  return grid[y][x] !== "object" && grid[y][x] !== "water"
 }
 
 // ── Zone Definitions ─────────────────────────────────────────────────────────
@@ -504,7 +513,7 @@ export function NeighborhoodMap() {
   const [grid] = useState<CellType[][]>(initializeGrid)
   const [showPaths, setShowPaths] = useState(false)
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null)
-  const [piggyPos, setPiggyPos] = useState({ x: 12, y: 9 })
+  const [piggyPos, setPiggyPos] = useState({ x: 11, y: 9 })
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
   const [isMoving, setIsMoving] = useState(false)
   const [activeZone, setActiveZone] = useState<Zone | null>(null)
