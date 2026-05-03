@@ -92,6 +92,48 @@ const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   return grid[y][x] === "path"
 }
 
+// ── Animated Sprite Component ─────────────────────────────────────────────────
+interface AnimatedSpriteProps {
+  spriteSheet: string
+  frameCount: number
+  currentFrame: number
+  width: number
+  height: number
+}
+
+function AnimatedSprite({ spriteSheet, frameCount, currentFrame, width, height }: AnimatedSpriteProps) {
+  // Calculate the offset for the current frame
+  const frameWidth = width
+  const totalWidth = frameWidth * frameCount
+  const offsetX = currentFrame * frameWidth
+
+  return (
+    <div
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <img
+        src={spriteSheet}
+        alt="Character sprite"
+        draggable={false}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: `-${offsetX}px`,
+          width: `${totalWidth}px`,
+          height: `${height}px`,
+          imageRendering: "pixelated",
+          userSelect: "none",
+        }}
+      />
+    </div>
+  )
+}
+
 // ── Dropdown ──────────────────────────────────────────────────────────────────
 interface DropdownProps {
   label: string
@@ -358,16 +400,12 @@ export function NeighborhoodMap() {
           transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
-        <div
-          style={{
-            width: "clamp(80px, 9vw, 130px)",
-            height: "clamp(80px, 9vw, 130px)",
-            backgroundImage: `url(${walkAnimationSheet})`,
-            backgroundSize: "400% 100%",
-            backgroundPosition: `${animationFrame * (100 / 3)}% 0`,
-            backgroundRepeat: "no-repeat",
-            imageRendering: "pixelated",
-          }}
+        <AnimatedSprite
+          spriteSheet={walkAnimationSheet}
+          frameCount={4}
+          currentFrame={animationFrame}
+          width={100}
+          height={100}
         />
       </div>
 
