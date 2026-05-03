@@ -97,10 +97,23 @@ const initializeGrid = (): CellType[][] => {
   return grid
 }
 
+// Hard boundary — Piggy cannot step outside these limits
+// Keeps the character inside the visible drawn map area
+const MAP_MIN_X = 3
+const MAP_MAX_X = 22
+const MAP_MIN_Y = 1
+const MAP_MAX_Y = 16
+
 const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   if (x < 0 || x >= GRID_COLS || y < 0 || y >= GRID_ROWS) return false
+  // Hard map boundary — stops Piggy at the edge of the drawn art
+  if (x < MAP_MIN_X || x > MAP_MAX_X || y < MAP_MIN_Y || y > MAP_MAX_Y) return false
+  // "object" and "water" are blocked; grass and path are walkable
   return grid[y][x] !== "object" && grid[y][x] !== "water"
 }
+
+const isInBounds = (x: number, y: number): boolean =>
+  x >= MAP_MIN_X && x <= MAP_MAX_X && y >= MAP_MIN_Y && y <= MAP_MAX_Y
 
 // ── Zone Definitions ──────────────────────────────────────────────────────────
 type ZoneId = "nature" | "home" | "business" | "abstract" | "faq"
@@ -165,7 +178,7 @@ const ZONES: Zone[] = [
     dropDir: "left",
     options: [
       { label: "Hábitos", description: "Construye rutinas que mejoren tu vida" },
-      { label: "Rutina", description: "Organiza tu d��a para ser más efectivo" },
+      { label: "Rutina", description: "Organiza tu d����a para ser más efectivo" },
       { label: "Organización", description: "Mantén tu espacio y mente en orden" },
     ],
   },
@@ -767,10 +780,14 @@ export function NeighborhoodMap() {
       >
         {grid.map((row, y) =>
           row.map((cell, x) => {
+            const inBounds = isInBounds(x, y)
             const walkable = isWalkable(x, y, grid)
             const isHovered = hoveredCell?.x === x && hoveredCell?.y === y
             let bg = "transparent"
-            if (showPaths) bg = walkable ? "rgba(255,215,60,0.15)" : "rgba(255,60,60,0.18)"
+            if (showPaths) {
+              if (!inBounds)  bg = "rgba(0,0,0,0.22)"
+              else            bg = walkable ? "rgba(255,215,60,0.15)" : "rgba(255,60,60,0.18)"
+            }
             if (showPaths && isHovered) bg = walkable ? "rgba(80,255,120,0.4)" : "rgba(255,60,60,0.5)"
             return (
               <div
