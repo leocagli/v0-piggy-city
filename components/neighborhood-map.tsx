@@ -1204,18 +1204,19 @@ export function NeighborhoodMap() {
           left:   "clamp(12px, 3vw, 16px)",
           width:  "clamp(80px, 14vw, 104px)",
           height: "clamp(80px, 14vw, 104px)",
-          background: joystickActive ? "#5d4037" : "#fffdf6",
-          border: "4px solid #4e342e",
+          background: joystickActive ? "rgba(93, 64, 55, 0.2)" : "rgba(255, 253, 246, 0.2)",
+          border: "4px solid rgba(78, 52, 46, 0.2)",
           borderRadius: "50%",
           boxShadow: joystickActive
-            ? "inset -3px -3px 0 #3e2723, inset 3px 3px 0 #8d6e63, 0 4px 0 #3e2723"
-            : "inset -3px -3px 0 #d7ccc8, inset 3px 3px 0 #fff8e1, 0 4px 0 #4e342e",
+            ? "inset -3px -3px 0 rgba(62, 39, 35, 0.2), inset 3px 3px 0 rgba(141, 110, 99, 0.2), 0 4px 0 rgba(62, 39, 35, 0.2)"
+            : "inset -3px -3px 0 rgba(215, 204, 200, 0.2), inset 3px 3px 0 rgba(255, 248, 225, 0.2), 0 4px 0 rgba(78, 52, 46, 0.2)",
           cursor: "grab",
           userSelect: "none",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           position: "absolute",
+          backdropFilter: "blur(1px)",
         }}
         onPointerDown={handleJoystickStart}
         onPointerMove={handleJoystickMove}
