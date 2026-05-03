@@ -231,12 +231,12 @@ export function NeighborhoodMap() {
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  // Sprite based on direction
-  const piggySprite = {
-    down: "/piggy.png",
-    up: "/piggy-back.png",
-    left: "/piggy-left.png",
-    right: "/piggy-right.png",
+  // Sprite based on direction - use walk animations (4-frame spritesheets)
+  const walkAnimationSheet = {
+    down: "/piggy-walk-front.png",
+    up: "/piggy-walk-back.png",
+    left: "/piggy-walk-left.png",
+    right: "/piggy-walk-right.png",
   }[piggyDirection]
 
   // Background position for spritesheet animation (4 frames, each 25% of the image width)
@@ -308,11 +308,10 @@ export function NeighborhoodMap() {
           style={{
             width: "clamp(80px, 9vw, 130px)",
             height: "auto",
-            backgroundImage: piggyDirection === "down" ? `url(/piggy-walk-front.png)` : `url(${piggySprite})`,
-            backgroundSize: piggyDirection === "down" ? "400% 100%" : "100% 100%",
-            backgroundPosition: piggyDirection === "down" ? `${bgPositionX}% 0%` : "0% 0%",
+            backgroundImage: `url(${walkAnimationSheet})`,
+            backgroundSize: "400% 100%",
+            backgroundPosition: `${bgPositionX}% 0%`,
             aspectRatio: "1",
-            animation: piggyDirection === "down" ? "none" : "piggyFloat 3s ease-in-out infinite",
             backgroundRepeat: "no-repeat",
             imageRendering: "pixelated",
             WebkitImageRendering: "pixelated",
