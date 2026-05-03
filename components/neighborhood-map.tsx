@@ -506,12 +506,13 @@ function ZoneDropdown({
 
   return (
     <div
-      className="absolute pointer-events-auto w-[180px] sm:w-[220px]"
+      className="absolute pointer-events-auto"
       style={{
         left: pinLeft,
         top: pinTop,
         transform: `translate(${offsetX}, -${PH + 8}px)`,
         zIndex: 50,
+        width: "clamp(190px, 28vw, 220px)",
       }}
     >
       {/* Panel */}
@@ -799,13 +800,29 @@ export function NeighborhoodMap() {
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-gray-900 flex items-center justify-center">
-      {/* Background */}
+    // Outer: full screen, black bg, centers the map box
+    <div className="fixed inset-0 overflow-hidden bg-black flex items-center justify-center touch-none">
+      {/*
+        Inner map container: maintains the map's 16:9 aspect ratio.
+        On landscape it fills the height; on portrait it fills the width.
+        All overlays are relative to THIS box, not the full screen.
+      */}
+      <div
+        className="relative"
+        style={{
+          // max width while keeping 16:9 ratio
+          width: "min(100vw, calc(100vh * (24/18)))",
+          height: "min(100vh, calc(100vw * (18/24)))",
+          flexShrink: 0,
+        }}
+      >
+
+      {/* Background — fills the map box exactly */}
       <img
         src="/neighborhood-background.png"
         alt="Mapa del vecindario"
-        className="w-full h-full"
-        style={{ objectFit: "contain", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
+        className="absolute inset-0 w-full h-full"
+        style={{ objectFit: "fill", pointerEvents: "none", userSelect: "none" }}
         draggable={false}
       />
 
@@ -1074,21 +1091,49 @@ export function NeighborhoodMap() {
         </div>
       )}
 
-      {/* Piggy */}
+      {/* Piggy — size is 2×cell so it scales naturally with the map box */}
       <div
         className="absolute z-30 pointer-events-none"
         style={{
           left: `${piggyScreenX}%`,
           top: `${piggyScreenY}%`,
+          width: `${cellW * 2}%`,
+          height: `${cellH * 2}%`,
           transform: "translate(-50%, -62%)",
           transition: "left 0.12s linear, top 0.12s linear",
         }}
       >
-        <CharacterSprite direction={piggyDirection} isMoving={isMoving} />
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+          {(Object.keys(ALL_SPRITES) as Array<keyof typeof ALL_SPRITES>).map((dir) => (
+            <img
+              key={dir}
+              src={ALL_SPRITES[dir] || "/placeholder.svg"}
+              alt="Piggy"
+              draggable={false}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                imageRendering: "pixelated",
+                userSelect: "none",
+                opacity: dir === piggyDirection ? 1 : 0,
+                animation: isMoving && dir === piggyDirection ? "walk-bounce 0.3s ease-in-out infinite" : "none",
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Bottom-right controls */}
-      <div className="absolute bottom-3 right-3 sm:bottom-3 sm:right-3 z-40 flex items-center gap-1 sm:gap-2 pointer-events-auto">
+      <div
+        className="absolute z-40 flex items-center gap-1 sm:gap-2 pointer-events-auto"
+        style={{
+          bottom: "clamp(10px, 2.5vw, 14px)",
+          right:  "clamp(10px, 2.5vw, 14px)",
+        }}
+      >
         {showPaths && hoveredCell && (
           <div
             style={{
@@ -1150,11 +1195,15 @@ export function NeighborhoodMap() {
         </button>
       </div>
 
-      {/* Bottom-left: virtual joystick — larger on mobile for easier touch */}
+      {/* Bottom-left: virtual joystick */}
       <div
         ref={joystickRef}
-        className="absolute bottom-4 left-4 sm:bottom-4 sm:left-4 z-40 pointer-events-auto touch-none select-none w-28 h-28 sm:w-24 sm:h-24"
+        className="absolute z-40 pointer-events-auto touch-none select-none"
         style={{
+          bottom: "clamp(12px, 3vw, 16px)",
+          left:   "clamp(12px, 3vw, 16px)",
+          width:  "clamp(80px, 14vw, 104px)",
+          height: "clamp(80px, 14vw, 104px)",
           background: joystickActive ? "#5d4037" : "#fffdf6",
           border: "4px solid #4e342e",
           borderRadius: "50%",
@@ -1191,6 +1240,8 @@ export function NeighborhoodMap() {
           }} />
         </div>
       </div>
+
+      </div> {/* end inner map container */}
     </div>
   )
 }

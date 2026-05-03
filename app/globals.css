@@ -164,3 +164,27 @@
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.08); }
 }
+
+/* Mobile: prevent rubber-band scrolling and selection on touch */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Mobile: scale up zone dropdown panels */
+@media (max-width: 639px) {
+  .zone-dropdown-panel {
+    font-size: 110% !important;
+  }
+}
+
+/* Mobile: ensure marker-pulse uses correct transform-origin */
+@media (max-width: 639px) {
+  @keyframes marker-pulse {
+    0%, 100% { transform: translate(-50%, -44px) scale(1); }
+    50%      { transform: translate(-50%, -44px) scale(1.1); }
+  }
+}
