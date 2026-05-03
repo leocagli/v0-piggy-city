@@ -358,31 +358,17 @@ export function NeighborhoodMap() {
           transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
-        {/* Wrapper clips to a single frame — overflow:hidden hides the other 3 frames */}
         <div
           style={{
             width: "clamp(80px, 9vw, 130px)",
             height: "clamp(80px, 9vw, 130px)",
-            overflow: "hidden",
-            position: "relative",
+            backgroundImage: `url(${walkAnimationSheet})`,
+            backgroundSize: "400% 100%",
+            backgroundPosition: `${animationFrame * (100 / 3)}% 0`,
+            backgroundRepeat: "no-repeat",
             imageRendering: "pixelated",
           }}
-        >
-          <img
-            src={walkAnimationSheet}
-            alt="Piggy"
-            draggable={false}
-            style={{
-              height: "100%",
-              width: "auto",
-              position: "absolute",
-              left: `-${animationFrame * 100}%`,
-              top: 0,
-              imageRendering: "pixelated",
-              userSelect: "none",
-            }}
-          />
-        </div>
+        />
       </div>
 
       {/* ══ FLOATING UI — corners only, no center obstruction ══ */}
