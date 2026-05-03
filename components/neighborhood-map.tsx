@@ -147,8 +147,8 @@ const ZONES: Zone[] = [
     icon: Leaf,
     color: "#16a34a",
     bgColor: "#dcfce7",
-    labelX: 4,
-    labelY: 5,
+    labelX: 5,
+    labelY: 3,
     triggerX: 5,
     triggerY: 7,
     options: [
@@ -166,7 +166,7 @@ const ZONES: Zone[] = [
     color: "#ea580c",
     bgColor: "#ffedd5",
     labelX: 18,
-    labelY: 6,
+    labelY: 2,
     triggerX: 15,
     triggerY: 7,
     options: [
@@ -184,7 +184,7 @@ const ZONES: Zone[] = [
     color: "#2563eb",
     bgColor: "#dbeafe",
     labelX: 4,
-    labelY: 16,
+    labelY: 11,
     triggerX: 6,
     triggerY: 9,
     options: [
@@ -202,7 +202,7 @@ const ZONES: Zone[] = [
     color: "#9333ea",
     bgColor: "#f3e8ff",
     labelX: 19,
-    labelY: 16,
+    labelY: 10,
     triggerX: 14,
     triggerY: 10,
     options: [
@@ -213,16 +213,16 @@ const ZONES: Zone[] = [
   },
   {
     id: "faq",
-    label: "FAQ",
-    title: "¿Cómo se juega?",
-    subtitle: "Guía y controles",
+    label: "FUENTE",
+    title: "Fuente Central",
+    subtitle: "Centro del pueblo",
     icon: HelpCircle,
-    color: "#d97706",
-    bgColor: "#fef3c7",
+    color: "#0891b2",
+    bgColor: "#cffafe",
     labelX: 11,
-    labelY: 13,
+    labelY: 9,
     triggerX: 11,
-    triggerY: 8,
+    triggerY: 9,
     options: [
       { label: "Movimiento", description: "Usa WASD, flechas o el joystick virtual para mover a Piggy" },
       { label: "Interacción", description: "Acércate a una zona y presiona E o haz click en la etiqueta" },
@@ -283,7 +283,7 @@ function CharacterSprite({
   )
 }
 
-// ── Zone Marker (label on the map) - Pixel Art Style ─────────────────────────
+// ── Zone Marker — teardrop map-pin style ─────────────────────────────────────
 function ZoneMarker({
   zone,
   isNear,
@@ -297,54 +297,107 @@ function ZoneMarker({
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
+  // Pin dimensions
+  const PIN_W = 68
+  const PIN_H = 80   // includes the pointed tail
+  const TAIL = 16    // height of the pointed tail below the circle
+  const CIRCLE_D = PIN_W  // circle diameter = full width
+  const BORDER = 3
+
   return (
     <button
       onClick={onClick}
-      className="absolute z-20 pointer-events-auto group cursor-pointer"
+      className="absolute pointer-events-auto cursor-pointer group"
       style={{
         left: `${zone.labelX * cellW + cellW / 2}%`,
         top: `${zone.labelY * cellH + cellH / 2}%`,
-        transform: "translate(-50%, -50%)",
+        // Anchor the tip of the pin to the position
+        transform: `translate(-50%, -${PIN_H}px)`,
+        zIndex: isNear ? 30 : 20,
+        animation: isNear ? "marker-pulse 1s ease-in-out infinite" : "none",
       }}
       aria-label={`Entrar a ${zone.title}`}
     >
-      {/* Pixel art style panel */}
-      <div
-        className="relative flex items-center gap-1.5 px-3 py-2 transition-transform duration-150 group-hover:scale-105 group-active:scale-95"
+      <svg
+        width={PIN_W + BORDER * 2}
+        height={PIN_H + BORDER * 2}
+        viewBox={`0 0 ${PIN_W + BORDER * 2} ${PIN_H + BORDER * 2}`}
         style={{
-          background: isNear ? "#5d4037" : "#f5e6d3",
-          color: isNear ? "#fff8e1" : "#4e342e",
-          border: "4px solid #4e342e",
-          borderRadius: "2px",
-          boxShadow: isNear
-            ? "inset -3px -3px 0 #3e2723, inset 3px 3px 0 #8d6e63, 0 6px 0 #3e2723"
-            : "inset -3px -3px 0 #d7ccc8, inset 3px 3px 0 #fff8e1, 0 4px 0 #4e342e",
-          fontFamily: "inherit",
-          fontWeight: 800,
-          fontSize: "11px",
-          letterSpacing: "0.5px",
-          textTransform: "uppercase",
-          imageRendering: "pixelated",
-          animation: isNear ? "marker-pulse 1s ease-in-out infinite" : "none",
+          filter: isNear
+            ? `drop-shadow(0 4px 8px ${zone.color}88)`
+            : "drop-shadow(0 3px 4px rgba(0,0,0,0.35))",
+          transition: "filter 0.2s ease",
+          overflow: "visible",
         }}
       >
-        <Icon className="w-4 h-4 shrink-0" strokeWidth={3} />
-        <span>{zone.label}</span>
+        {/* Outer border shape */}
+        <PinShape
+          x={BORDER}
+          y={BORDER}
+          w={PIN_W}
+          circleD={CIRCLE_D}
+          tail={TAIL}
+          fill={zone.color}
+          darken
+        />
+        {/* Inner fill — slightly lighter top half for depth */}
+        <PinShape
+          x={BORDER + 3}
+          y={BORDER + 3}
+          w={PIN_W - 6}
+          circleD={CIRCLE_D - 6}
+          tail={TAIL - 3}
+          fill={zone.color}
+          darken={false}
+        />
+      </svg>
+
+      {/* Icon + Label absolutely centered in the circle */}
+      <div
+        className="absolute flex flex-col items-center justify-center gap-0.5"
+        style={{
+          left: BORDER,
+          top: BORDER,
+          width: PIN_W,
+          height: CIRCLE_D,
+          pointerEvents: "none",
+        }}
+      >
+        <Icon
+          style={{ width: 22, height: 22, color: "#ffffff", flexShrink: 0 }}
+          strokeWidth={2.5}
+        />
+        <span
+          style={{
+            color: "#ffffff",
+            fontSize: "9px",
+            fontWeight: 800,
+            letterSpacing: "0.6px",
+            textTransform: "uppercase",
+            lineHeight: 1,
+            textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+          }}
+        >
+          {zone.label}
+        </span>
       </div>
+
+      {/* "PRESS E" badge when near */}
       {isNear && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-1"
+          className="absolute left-1/2 -translate-x-1/2"
           style={{
-            top: "100%",
+            top: PIN_H + BORDER * 2 + 4,
             background: "#ffcc02",
             color: "#4e342e",
-            border: "3px solid #4e342e",
-            borderRadius: "2px",
-            boxShadow: "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066, 0 3px 0 #4e342e",
-            fontSize: "10px",
+            border: "2.5px solid #4e342e",
+            borderRadius: "3px",
+            padding: "2px 8px",
+            fontSize: "9px",
             fontWeight: 800,
             letterSpacing: "0.5px",
             whiteSpace: "nowrap",
+            boxShadow: "0 2px 0 #4e342e",
           }}
         >
           PRESS E
@@ -352,6 +405,42 @@ function ZoneMarker({
       )}
     </button>
   )
+}
+
+// Helper: draws the teardrop SVG path
+function PinShape({
+  x, y, w, circleD, tail, fill, darken,
+}: {
+  x: number; y: number; w: number; circleD: number; tail: number; fill: string; darken: boolean
+}) {
+  const cx = x + w / 2
+  const r = circleD / 2
+  const cy = y + r
+  const tipY = cy + r + tail
+
+  // Two arcs forming the circle + pointed tip
+  const d = [
+    `M ${cx} ${tipY}`,
+    `L ${cx - r * 0.35} ${cy + r * 0.75}`,
+    `A ${r} ${r} 0 1 1 ${cx + r * 0.35} ${cy + r * 0.75}`,
+    "Z",
+  ].join(" ")
+
+  return (
+    <path
+      d={d}
+      fill={darken ? darkenColor(fill, 0.3) : fill}
+    />
+  )
+}
+
+// Darken a hex color by a factor 0-1
+function darkenColor(hex: string, factor: number): string {
+  const n = parseInt(hex.replace("#", ""), 16)
+  const r = Math.max(0, Math.floor(((n >> 16) & 0xff) * (1 - factor)))
+  const g = Math.max(0, Math.floor(((n >> 8) & 0xff) * (1 - factor)))
+  const b = Math.max(0, Math.floor((n & 0xff) * (1 - factor)))
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`
 }
 
 // ── Zone Modal - Pixel Art Style ─────────────────────────────────────────────
