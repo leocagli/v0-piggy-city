@@ -792,11 +792,10 @@ export function NeighborhoodMap() {
         draggable={false}
       />
 
-      {/* Hit-test grid — click on map to open minimap */}
+      {/* Hit-test grid */}
       <div
         className="absolute inset-0"
-        style={{ cursor: showPaths ? "crosshair" : "pointer", pointerEvents: "auto" }}
-        onClick={() => setShowMinimap(true)}
+        style={{ cursor: showPaths ? "crosshair" : "default", pointerEvents: "auto" }}
       >
         {grid.map((row, y) =>
           row.map((cell, x) => {
@@ -826,6 +825,24 @@ export function NeighborhoodMap() {
           })
         )}
       </div>
+
+      {/* Cartel/tablero del mapa — click para abrir minimapa */}
+      <button
+        onClick={() => setShowMinimap(true)}
+        className="absolute pointer-events-auto"
+        style={{
+          left:   `${9  * cellW}%`,
+          top:    `${4  * cellH}%`,
+          width:  `${3  * cellW}%`,
+          height: `${3  * cellH}%`,
+          cursor: "pointer",
+          background: "transparent",
+          border: showPaths ? "2px dashed rgba(255,200,0,0.8)" : "none",
+          padding: 0,
+        }}
+        title="Ver minimapa"
+        aria-label="Abrir minimapa"
+      />
 
       {/* Zone pins */}
       {ZONES.map((zone) => (
