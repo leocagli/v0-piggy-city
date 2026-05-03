@@ -407,10 +407,6 @@ function ZoneMarker({
           points={`${PW / 2},${PW} ${PW / 2 - R * 0.45},${PW * 0.7} ${PW / 2 + R * 0.45},${PW * 0.7}`}
           fill={zone.colorDark}
         />
-        <polygon
-          points={`${PW / 2},${PW - 2} ${PW / 2 - R * 0.4},${PW * 0.72} ${PW / 2 + R * 0.4},${PW * 0.72}`}
-          fill={zone.color}
-        />
 
         {/* Icon — centered in circle */}
         <g transform={`translate(${PW / 2}, ${R})`}>
