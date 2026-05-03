@@ -92,27 +92,27 @@ const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   return grid[y][x] === "path"
 }
 
-// ── Animated Sprite Component ─────────────────────────────────────────────────
-interface AnimatedSpriteProps {
-  sprite: string
-  isMoving: boolean
-  direction: "up" | "down" | "left" | "right"
-}
+// ── Character Sprite Component ─────────────────────────────────────────────────
+const SPRITE_SIZE = 100 // Fixed pixel size for consistency
 
-function AnimatedSprite({ sprite, isMoving, direction }: AnimatedSpriteProps) {
-  // Different walk animations for each direction
-  const animationName = isMoving ? `walk-${direction}` : "idle"
-  
+function CharacterSprite({ 
+  sprite, 
+  isMoving 
+}: { 
+  sprite: string
+  isMoving: boolean 
+}) {
   return (
     <img
       src={sprite}
       alt="Piggy"
       draggable={false}
       style={{
-        width: "clamp(80px, 9vw, 130px)",
-        height: "auto",
+        width: `${SPRITE_SIZE}px`,
+        height: `${SPRITE_SIZE}px`,
+        objectFit: "contain",
         imageRendering: "pixelated",
-        animation: `${animationName} 0.6s ease-in-out infinite`,
+        animation: isMoving ? "walk-bounce 0.3s steps(2) infinite" : "none",
         userSelect: "none",
       }}
     />
@@ -192,35 +192,22 @@ export function NeighborhoodMap() {
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null)
   const [piggyPos, setPiggyPos] = useState({ x: 12, y: 9 })
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
-  const [animationFrame, setAnimationFrame] = useState(0)
   const [isMoving, setIsMoving] = useState(false)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
-  const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCellHover = useCallback((x: number, y: number) => setHoveredCell({ x, y }), [])
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
 
-  const startWalkAnimation = useCallback(() => {
+  const triggerWalkAnimation = useCallback(() => {
     // Clear any pending stop
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
-    // Start cycling frames if not already running
-    if (!animIntervalRef.current) {
-      animIntervalRef.current = setInterval(() => {
-        setAnimationFrame((prev) => (prev + 1) % 4)
-      }, 150)
-    }
+    if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     setIsMoving(true)
-    // Stop animation after 400ms of no new moves
-    stopTimerRef.current = setTimeout(() => {
-      if (animIntervalRef.current) {
-        clearInterval(animIntervalRef.current)
-        animIntervalRef.current = null
-      }
-      setAnimationFrame(0)
+    // Stop animation after movement completes
+    moveTimeoutRef.current = setTimeout(() => {
       setIsMoving(false)
-    }, 400)
+    }, 250)
   }, [])
 
   const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
@@ -229,12 +216,12 @@ export function NeighborhoodMap() {
       const newY = prev.y + dy
       if (isWalkable(newX, newY, grid)) {
         setPiggyDirection(dir)
-        startWalkAnimation()
+        triggerWalkAnimation()
         return { x: newX, y: newY }
       }
       return prev
     })
-  }, [grid, startWalkAnimation])
+  }, [grid, triggerWalkAnimation])
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -265,11 +252,10 @@ export function NeighborhoodMap() {
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [movePiggy])
 
-  // Cleanup intervals on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (animIntervalRef.current) clearInterval(animIntervalRef.current)
-      if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     }
   }, [])
 
@@ -385,10 +371,9 @@ export function NeighborhoodMap() {
           transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
-        <AnimatedSprite
+        <CharacterSprite
           sprite={spriteMap}
           isMoving={isMoving}
-          direction={piggyDirection}
         />
       </div>
 
