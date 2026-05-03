@@ -169,9 +169,32 @@ export function NeighborhoodMap() {
   const [isMoving, setIsMoving] = useState(false)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
+  const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCellHover = useCallback((x: number, y: number) => setHoveredCell({ x, y }), [])
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
+
+  const startWalkAnimation = useCallback(() => {
+    // Clear any pending stop
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+    // Start cycling frames if not already running
+    if (!animIntervalRef.current) {
+      animIntervalRef.current = setInterval(() => {
+        setAnimationFrame((prev) => (prev + 1) % 4)
+      }, 150)
+    }
+    setIsMoving(true)
+    // Stop animation after 400ms of no new moves
+    stopTimerRef.current = setTimeout(() => {
+      if (animIntervalRef.current) {
+        clearInterval(animIntervalRef.current)
+        animIntervalRef.current = null
+      }
+      setAnimationFrame(0)
+      setIsMoving(false)
+    }, 400)
+  }, [])
 
   const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
     setPiggyPos((prev) => {
@@ -179,13 +202,12 @@ export function NeighborhoodMap() {
       const newY = prev.y + dy
       if (isWalkable(newX, newY, grid)) {
         setPiggyDirection(dir)
-        setIsMoving(true)
-        setAnimationFrame(0)
+        startWalkAnimation()
         return { x: newX, y: newY }
       }
       return prev
     })
-  }, [grid])
+  }, [grid, startWalkAnimation])
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -216,18 +238,13 @@ export function NeighborhoodMap() {
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [movePiggy])
 
-  // Animation frame cycling
+  // Cleanup intervals on unmount
   useEffect(() => {
-    if (!isMoving) return
-    const animInterval = setInterval(() => {
-      setAnimationFrame((prev) => {
-        const next = (prev + 1) % 4
-        if (next === 0) setIsMoving(false)
-        return next
-      })
-    }, 150)
-    return () => clearInterval(animInterval)
-  }, [isMoving])
+    return () => {
+      if (animIntervalRef.current) clearInterval(animIntervalRef.current)
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+    }
+  }, [])
 
   // Joystick handler
   const handleJoystickStart = useCallback(() => {
@@ -341,18 +358,31 @@ export function NeighborhoodMap() {
           transition: "left 0.2s ease, top 0.2s ease",
         }}
       >
+        {/* Wrapper clips to a single frame — overflow:hidden hides the other 3 frames */}
         <div
           style={{
             width: "clamp(80px, 9vw, 130px)",
             height: "clamp(80px, 9vw, 130px)",
-            backgroundImage: `url(${walkAnimationSheet})`,
-            backgroundSize: "400% 100%",
-            backgroundPosition: `${animationFrame * 25}% 0%`,
-            backgroundRepeat: "no-repeat",
-            backgroundAttachment: "fixed",
+            overflow: "hidden",
+            position: "relative",
             imageRendering: "pixelated",
           }}
-        />
+        >
+          <img
+            src={walkAnimationSheet}
+            alt="Piggy"
+            draggable={false}
+            style={{
+              height: "100%",
+              width: "auto",
+              position: "absolute",
+              left: `-${animationFrame * 100}%`,
+              top: 0,
+              imageRendering: "pixelated",
+              userSelect: "none",
+            }}
+          />
+        </div>
       </div>
 
       {/* ══ FLOATING UI — corners only, no center obstruction ══ */}
