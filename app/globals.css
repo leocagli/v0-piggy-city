@@ -158,3 +158,9 @@
   0%, 100% { transform: translateY(0px); }
   50%      { transform: translateY(-6px); }
 }
+
+/* Pulse animation for zone markers when Piggy is nearby */
+@keyframes marker-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}

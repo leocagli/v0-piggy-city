@@ -1,7 +1,19 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
-import { Home, Briefcase, Leaf, Sparkles, ChevronDown, Eye, EyeOff } from "lucide-react"
+import { useState, useCallback, useRef, useEffect, type ElementType } from "react"
+import {
+  Home,
+  Briefcase,
+  Leaf,
+  Sparkles,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  X,
+  Keyboard,
+  Gamepad2,
+  MousePointerClick,
+} from "lucide-react"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -19,14 +31,14 @@ interface MapObject {
 }
 
 const mapObjects: MapObject[] = [
-  { id: "cliff",        x: 0,  y: 0,  width: 4, height: 6,  type: "rock",     zone: "nature"   },
-  { id: "river",        x: 0,  y: 0,  width: 3, height: 10, type: "water",    zone: "nature"   },
+  { id: "cliff",       x: 0,  y: 0,  width: 4, height: 6,  type: "rock",     zone: "nature"   },
+  { id: "river",       x: 0,  y: 0,  width: 3, height: 10, type: "water",    zone: "nature"   },
   { id: "tree-tl-1",   x: 3,  y: 0,  width: 2, height: 2,  type: "tree",     zone: "nature"   },
   { id: "tree-tl-2",   x: 5,  y: 0,  width: 2, height: 2,  type: "tree",     zone: "nature"   },
   { id: "tree-tl-3",   x: 0,  y: 7,  width: 2, height: 3,  type: "tree",     zone: "nature"   },
-  { id: "bridge",       x: 3,  y: 7,  width: 2, height: 2,  type: "bridge",   zone: "neutral"  },
-  { id: "rock-n1",      x: 6,  y: 5,  width: 1, height: 1,  type: "rock",     zone: "nature"   },
-  { id: "rock-n2",      x: 7,  y: 4,  width: 1, height: 1,  type: "rock",     zone: "nature"   },
+  { id: "bridge",      x: 3,  y: 7,  width: 2, height: 2,  type: "bridge",   zone: "neutral"  },
+  { id: "rock-n1",     x: 6,  y: 5,  width: 1, height: 1,  type: "rock",     zone: "nature"   },
+  { id: "rock-n2",     x: 7,  y: 4,  width: 1, height: 1,  type: "rock",     zone: "nature"   },
   { id: "house-main",  x: 15, y: 1,  width: 5, height: 4,  type: "house",    zone: "home"     },
   { id: "house-shed",  x: 19, y: 3,  width: 3, height: 3,  type: "house",    zone: "home"     },
   { id: "fence-1",     x: 14, y: 4,  width: 1, height: 3,  type: "rock",     zone: "home"     },
@@ -92,8 +104,130 @@ const isWalkable = (x: number, y: number, grid: CellType[][]): boolean => {
   return grid[y][x] === "path"
 }
 
-// ── Character Sprite Component ─────────────────────────────────────────────────
-const SPRITE_SIZE = 100 // Fixed pixel size for consistency
+// ── Zone Definitions ─────────────────────────────────────────────────────────
+type ZoneId = "nature" | "home" | "business" | "abstract" | "faq"
+
+interface ZoneOption {
+  label: string
+  description: string
+}
+
+interface Zone {
+  id: ZoneId
+  label: string
+  title: string
+  subtitle: string
+  icon: ElementType
+  color: string
+  bgColor: string
+  // Label position on the map (in grid coordinates, x and y)
+  labelX: number
+  labelY: number
+  // Trigger cell - where Piggy needs to be (or near) to interact
+  triggerX: number
+  triggerY: number
+  options: ZoneOption[]
+}
+
+const ZONES: Zone[] = [
+  {
+    id: "nature",
+    label: "NATURE",
+    title: "Naturaleza",
+    subtitle: "Ahorro y crecimiento",
+    icon: Leaf,
+    color: "#16a34a",
+    bgColor: "#dcfce7",
+    labelX: 4,
+    labelY: 5,
+    triggerX: 5,
+    triggerY: 7,
+    options: [
+      { label: "Ahorro", description: "Aprende a guardar tus monedas para el futuro" },
+      { label: "Inversión", description: "Haz que tus ahorros crezcan con el tiempo" },
+      { label: "Crecimiento", description: "Hábitos diarios para construir riqueza" },
+    ],
+  },
+  {
+    id: "home",
+    label: "HOME",
+    title: "Hogar",
+    subtitle: "Hábitos y rutina",
+    icon: Home,
+    color: "#ea580c",
+    bgColor: "#ffedd5",
+    labelX: 18,
+    labelY: 6,
+    triggerX: 15,
+    triggerY: 7,
+    options: [
+      { label: "Hábitos", description: "Construye rutinas que mejoren tu vida" },
+      { label: "Rutina", description: "Organiza tu día para ser más efectivo" },
+      { label: "Organización", description: "Mantén tu espacio y mente en orden" },
+    ],
+  },
+  {
+    id: "business",
+    label: "BUSINESS",
+    title: "Negocios",
+    subtitle: "Producto y productividad",
+    icon: Briefcase,
+    color: "#2563eb",
+    bgColor: "#dbeafe",
+    labelX: 4,
+    labelY: 16,
+    triggerX: 6,
+    triggerY: 9,
+    options: [
+      { label: "Producto", description: "Crea soluciones que la gente necesita" },
+      { label: "Decisiones", description: "Toma decisiones inteligentes y rápidas" },
+      { label: "Productividad", description: "Maximiza tu rendimiento diario" },
+    ],
+  },
+  {
+    id: "abstract",
+    label: "ABSTRACT",
+    title: "Abstracto",
+    subtitle: "Ideas y desafíos",
+    icon: Sparkles,
+    color: "#9333ea",
+    bgColor: "#f3e8ff",
+    labelX: 19,
+    labelY: 16,
+    triggerX: 14,
+    triggerY: 10,
+    options: [
+      { label: "Ideas", description: "Explora conceptos y pensamientos creativos" },
+      { label: "Estados", description: "Comprende tus emociones y mentalidad" },
+      { label: "Desafíos", description: "Supera retos que pondrán a prueba tu mente" },
+    ],
+  },
+  {
+    id: "faq",
+    label: "FAQ",
+    title: "¿Cómo se juega?",
+    subtitle: "Guía y controles",
+    icon: HelpCircle,
+    color: "#d97706",
+    bgColor: "#fef3c7",
+    labelX: 11,
+    labelY: 13,
+    triggerX: 11,
+    triggerY: 8,
+    options: [
+      { label: "Movimiento", description: "Usa WASD, flechas o el joystick virtual para mover a Piggy" },
+      { label: "Interacción", description: "Acércate a una zona y presiona E o haz click en la etiqueta" },
+      { label: "Objetivo", description: "Explora cada zona del mapa y aprende sus lecciones únicas" },
+    ],
+  },
+]
+
+// Manhattan distance between two grid cells
+const manhattanDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+
+// ── Character Sprite Component ───────────────────────────────────────────────
+const SPRITE_SIZE = 100
 
 const ALL_SPRITES = {
   down: "/sprites/front-1.png",
@@ -102,15 +236,13 @@ const ALL_SPRITES = {
   right: "/sprites/right-1.png",
 } as const
 
-function CharacterSprite({ 
-  direction, 
-  isMoving 
-}: { 
+function CharacterSprite({
+  direction,
+  isMoving,
+}: {
   direction: "up" | "down" | "left" | "right"
-  isMoving: boolean 
+  isMoving: boolean
 }) {
-  // Render ALL 4 sprites at once, only show the active one.
-  // This means sprite swaps are INSTANT - no image loading delay.
   return (
     <div
       style={{
@@ -123,7 +255,7 @@ function CharacterSprite({
       {(Object.keys(ALL_SPRITES) as Array<keyof typeof ALL_SPRITES>).map((dir) => (
         <img
           key={dir}
-          src={ALL_SPRITES[dir]}
+          src={ALL_SPRITES[dir] || "/placeholder.svg"}
           alt="Piggy"
           draggable={false}
           style={{
@@ -142,73 +274,173 @@ function CharacterSprite({
   )
 }
 
-// ── Dropdown ──────────────────────────────────────────────────────────────────
-interface DropdownProps {
-  label: string
-  icon: React.ElementType
-  color: string
-  align?: "left" | "right"
-  items: { label: string; value: string }[]
-}
-
-function Dropdown({ label, icon: Icon, color, align = "left", items }: DropdownProps) {
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [])
+// ── Zone Marker (label on the map) ───────────────────────────────────────────
+function ZoneMarker({
+  zone,
+  isNear,
+  onClick,
+}: {
+  zone: Zone
+  isNear: boolean
+  onClick: () => void
+}) {
+  const Icon = zone.icon
+  const cellW = 100 / GRID_COLS
+  const cellH = 100 / GRID_ROWS
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm"
+    <button
+      onClick={onClick}
+      className="absolute z-20 pointer-events-auto group cursor-pointer"
+      style={{
+        left: `${zone.labelX * cellW + cellW / 2}%`,
+        top: `${zone.labelY * cellH + cellH / 2}%`,
+        transform: "translate(-50%, -50%)",
+      }}
+      aria-label={`Entrar a ${zone.title}`}
+    >
+      <div
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full shadow-lg transition-all duration-200 group-hover:scale-110 group-active:scale-95 backdrop-blur-sm font-bold text-xs whitespace-nowrap"
         style={{
-          background: "rgba(255,255,255,0.88)",
-          border: `2px solid ${color}`,
-          color: "#1a1a1a",
+          background: isNear ? zone.color : "rgba(255,255,255,0.92)",
+          color: isNear ? "#ffffff" : zone.color,
+          border: `2px solid ${zone.color}`,
+          boxShadow: isNear
+            ? `0 0 0 4px ${zone.color}33, 0 4px 14px ${zone.color}66`
+            : `0 2px 8px rgba(0,0,0,0.2)`,
+          animation: isNear ? "marker-pulse 1.2s ease-in-out infinite" : "none",
         }}
       >
-        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
-        <span style={{ color }}>{label}</span>
-        <ChevronDown
-          className="w-3 h-3 shrink-0 transition-transform duration-200"
-          style={{ color, transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-        />
-      </button>
-
-      {open && (
+        <Icon className="w-3.5 h-3.5 shrink-0" />
+        <span>{zone.label}</span>
+      </div>
+      {isNear && (
         <div
-          className="absolute mt-1 w-44 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-md"
+          className="absolute left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
           style={{
-            background: "rgba(255,255,255,0.96)",
-            border: `2px solid ${color}`,
-            [align === "right" ? "right" : "left"]: 0,
             top: "100%",
+            background: zone.color,
+            color: "#ffffff",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
           }}
         >
-          {items.map((item) => (
-            <button
-              key={item.value}
-              className="w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-black/5 text-gray-700"
-              onClick={() => { setSelected(item.value); setOpen(false) }}
-            >
-              {selected === item.value ? "✓ " : ""}{item.label}
-            </button>
-          ))}
+          Press E
         </div>
       )}
+    </button>
+  )
+}
+
+// ── Zone Modal ───────────────────────────────────────────────────────────────
+function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
+  const Icon = zone.icon
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", handleEsc)
+    return () => document.removeEventListener("keydown", handleEsc)
+  }, [onClose])
+
+  const isFAQ = zone.id === "faq"
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+        style={{ background: "#ffffff" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="p-5 flex items-start gap-3"
+          style={{ background: zone.bgColor, borderBottom: `3px solid ${zone.color}` }}
+        >
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md"
+            style={{ background: zone.color }}
+          >
+            <Icon className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold leading-tight" style={{ color: zone.color }}>
+              {zone.title}
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: zone.color, opacity: 0.85 }}>
+              {zone.subtitle}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:bg-black/10"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" style={{ color: zone.color }} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5">
+          {isFAQ && (
+            <div className="mb-4 p-3 rounded-xl" style={{ background: zone.bgColor }}>
+              <div className="flex items-center gap-3 mb-2">
+                <Keyboard className="w-4 h-4" style={{ color: zone.color }} />
+                <span className="text-xs font-bold" style={{ color: zone.color }}>
+                  Teclado: WASD o flechas
+                </span>
+              </div>
+              <div className="flex items-center gap-3 mb-2">
+                <Gamepad2 className="w-4 h-4" style={{ color: zone.color }} />
+                <span className="text-xs font-bold" style={{ color: zone.color }}>
+                  Joystick virtual abajo a la izquierda
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <MousePointerClick className="w-4 h-4" style={{ color: zone.color }} />
+                <span className="text-xs font-bold" style={{ color: zone.color }}>
+                  Click en una etiqueta para entrar
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {zone.options.map((option) => (
+              <div
+                key={option.label}
+                className="p-3 rounded-xl transition-colors hover:bg-black/5 cursor-pointer"
+                style={{
+                  border: `1.5px solid ${zone.color}33`,
+                  background: "#fafafa",
+                }}
+              >
+                <div className="font-bold text-sm mb-0.5" style={{ color: zone.color }}>
+                  {option.label}
+                </div>
+                <div className="text-xs text-gray-600 leading-snug">{option.description}</div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="mt-4 w-full py-2.5 rounded-xl font-bold text-sm text-white transition-transform hover:scale-[1.02] active:scale-95"
+            style={{ background: zone.color }}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────────
 export function NeighborhoodMap() {
   const [grid] = useState<CellType[][]>(initializeGrid)
   const [showPaths, setShowPaths] = useState(false)
@@ -216,6 +448,7 @@ export function NeighborhoodMap() {
   const [piggyPos, setPiggyPos] = useState({ x: 12, y: 9 })
   const [piggyDirection, setPiggyDirection] = useState<"down" | "up" | "left" | "right">("down")
   const [isMoving, setIsMoving] = useState(false)
+  const [activeZone, setActiveZone] = useState<Zone | null>(null)
   const joystickRef = useRef<HTMLDivElement>(null)
   const [joystickActive, setJoystickActive] = useState(false)
   const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -224,33 +457,50 @@ export function NeighborhoodMap() {
   const handleCellLeave = useCallback(() => setHoveredCell(null), [])
 
   const triggerWalkAnimation = useCallback(() => {
-    // Clear any pending stop
     if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     setIsMoving(true)
-    // Keep animation active for the full duration
     moveTimeoutRef.current = setTimeout(() => {
       setIsMoving(false)
     }, 350)
   }, [])
 
-  const movePiggy = useCallback((dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
-    // Change direction IMMEDIATELY - before anything else
-    setPiggyDirection(dir)
-    
-    setPiggyPos((prev) => {
-      const newX = prev.x + dx
-      const newY = prev.y + dy
-      if (isWalkable(newX, newY, grid)) {
-        triggerWalkAnimation()
-        return { x: newX, y: newY }
+  const movePiggy = useCallback(
+    (dx: number, dy: number, dir: "down" | "up" | "left" | "right") => {
+      setPiggyDirection(dir)
+      setPiggyPos((prev) => {
+        const newX = prev.x + dx
+        const newY = prev.y + dy
+        if (isWalkable(newX, newY, grid)) {
+          triggerWalkAnimation()
+          return { x: newX, y: newY }
+        }
+        return prev
+      })
+    },
+    [grid, triggerWalkAnimation]
+  )
+
+  // Determine the closest zone Piggy is near (within 2 cells)
+  const nearestZone = (() => {
+    let closest: Zone | null = null
+    let minDist = Infinity
+    for (const z of ZONES) {
+      const d = manhattanDist(piggyPos, { x: z.triggerX, y: z.triggerY })
+      if (d <= 2 && d < minDist) {
+        minDist = d
+        closest = z
       }
-      return prev
-    })
-  }, [grid, triggerWalkAnimation])
+    }
+    return closest
+  })()
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      switch (e.key.toLowerCase()) {
+      // If a modal is open, ignore movement keys
+      if (activeZone) return
+
+      const key = e.key.toLowerCase()
+      switch (key) {
         case "arrowup":
         case "w":
           movePiggy(0, -1, "up")
@@ -271,79 +521,86 @@ export function NeighborhoodMap() {
           movePiggy(1, 0, "right")
           e.preventDefault()
           break
+        case "e":
+        case "enter":
+          if (nearestZone) {
+            setActiveZone(nearestZone)
+            e.preventDefault()
+          }
+          break
       }
     }
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [movePiggy])
+  }, [movePiggy, nearestZone, activeZone])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     }
   }, [])
 
-  // Joystick handler
   const handleJoystickStart = useCallback(() => {
     setJoystickActive(true)
   }, [])
 
-  const handleJoystickMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!joystickRef.current || !joystickActive) return
-    
-    const rect = joystickRef.current.getBoundingClientRect()
-    const centerX = rect.width / 2
-    const centerY = rect.height / 2
-    const x = e.clientX - rect.left - centerX
-    const y = e.clientY - rect.top - centerY
-    const distance = Math.sqrt(x * x + y * y)
-    const maxDistance = rect.width / 3
+  const handleJoystickMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!joystickRef.current || !joystickActive) return
 
-    if (distance > 5) {
-      const angle = Math.atan2(y, x)
-      let dir: "down" | "up" | "left" | "right" | null = null
-      
-      // 8 directions, primarily focused on 4 cardinal
-      if (angle > -Math.PI / 4 && angle < Math.PI / 4) dir = "right"
-      else if (angle > Math.PI / 4 && angle < (3 * Math.PI) / 4) dir = "down"
-      else if (angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4) dir = "up"
-      else dir = "left"
+      const rect = joystickRef.current.getBoundingClientRect()
+      const centerX = rect.width / 2
+      const centerY = rect.height / 2
+      const x = e.clientX - rect.left - centerX
+      const y = e.clientY - rect.top - centerY
+      const distance = Math.sqrt(x * x + y * y)
 
-      if (dir) {
-        const dx = dir === "right" ? 1 : dir === "left" ? -1 : 0
-        const dy = dir === "down" ? 1 : dir === "up" ? -1 : 0
-        movePiggy(dx, dy, dir)
+      if (distance > 5) {
+        const angle = Math.atan2(y, x)
+        let dir: "down" | "up" | "left" | "right" | null = null
+
+        if (angle > -Math.PI / 4 && angle < Math.PI / 4) dir = "right"
+        else if (angle > Math.PI / 4 && angle < (3 * Math.PI) / 4) dir = "down"
+        else if (angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4) dir = "up"
+        else dir = "left"
+
+        if (dir) {
+          const dx = dir === "right" ? 1 : dir === "left" ? -1 : 0
+          const dy = dir === "down" ? 1 : dir === "up" ? -1 : 0
+          movePiggy(dx, dy, dir)
+        }
       }
-    }
-  }, [joystickActive, movePiggy])
+    },
+    [joystickActive, movePiggy]
+  )
 
   const handleJoystickEnd = useCallback(() => {
     setJoystickActive(false)
   }, [])
 
-  // Compute cell percentages so the grid aligns to the image regardless of viewport
   const cellW = 100 / GRID_COLS
   const cellH = 100 / GRID_ROWS
 
-  // Piggy position in screen percentages
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
 
   return (
-    // Root: full viewport, no overflow, no margins
     <div className="fixed inset-0 overflow-hidden bg-gray-900 flex items-center justify-center">
-
-      {/* ── Background image — maintains aspect ratio, fully visible ── */}
+      {/* Background image */}
       <img
         src="/neighborhood-background.png"
         alt="Mapa del vecindario"
         className="w-full h-full"
-        style={{ objectFit: "contain", objectPosition: "center", pointerEvents: "none", userSelect: "none" }}
+        style={{
+          objectFit: "contain",
+          objectPosition: "center",
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
         draggable={false}
       />
 
-      {/* ── Invisible hit-test grid (percentage-based, covers the image exactly) ── */}
+      {/* Hit-test grid */}
       <div
         className="absolute inset-0"
         style={{ cursor: showPaths ? "crosshair" : "default", pointerEvents: "auto" }}
@@ -378,7 +635,17 @@ export function NeighborhoodMap() {
         )}
       </div>
 
-      {/* ── Piggy — centered focal character over the fountain ── */}
+      {/* Zone markers - positioned over each building */}
+      {ZONES.map((zone) => (
+        <ZoneMarker
+          key={zone.id}
+          zone={zone}
+          isNear={nearestZone?.id === zone.id}
+          onClick={() => setActiveZone(zone)}
+        />
+      ))}
+
+      {/* Piggy character */}
       <div
         className="absolute z-30 pointer-events-none"
         style={{
@@ -388,67 +655,10 @@ export function NeighborhoodMap() {
           transition: "left 0.12s linear, top 0.12s linear",
         }}
       >
-        <CharacterSprite
-          direction={piggyDirection}
-          isMoving={isMoving}
-        />
+        <CharacterSprite direction={piggyDirection} isMoving={isMoving} />
       </div>
 
-      {/* ══ FLOATING UI — corners only, no center obstruction ══ */}
-
-      {/* Top-left: Nature + Business */}
-      <div className="absolute top-3 left-3 z-40 flex flex-col gap-1.5 pointer-events-auto">
-        <Dropdown
-          label="NATURE"
-          icon={Leaf}
-          color="#16a34a"
-          align="left"
-          items={[
-            { label: "Ahorro", value: "ahorro" },
-            { label: "Inversión", value: "inversion" },
-            { label: "Crecimiento", value: "crecimiento" },
-          ]}
-        />
-        <Dropdown
-          label="BUSINESS"
-          icon={Briefcase}
-          color="#2563eb"
-          align="left"
-          items={[
-            { label: "Producto", value: "producto" },
-            { label: "Decisiones", value: "decisiones" },
-            { label: "Productividad", value: "productividad" },
-          ]}
-        />
-      </div>
-
-      {/* Top-right: Home + Abstract */}
-      <div className="absolute top-3 right-3 z-40 flex flex-col gap-1.5 items-end pointer-events-auto">
-        <Dropdown
-          label="HOME"
-          icon={Home}
-          color="#ea580c"
-          align="right"
-          items={[
-            { label: "Hábitos", value: "habitos" },
-            { label: "Rutina", value: "rutina" },
-            { label: "Organización", value: "organizacion" },
-          ]}
-        />
-        <Dropdown
-          label="ABSTRACT"
-          icon={Sparkles}
-          color="#9333ea"
-          align="right"
-          items={[
-            { label: "Ideas", value: "ideas" },
-            { label: "Estados", value: "estados" },
-            { label: "Desafíos", value: "desafios" },
-          ]}
-        />
-      </div>
-
-      {/* Bottom-right: toggle caminos + hover info + controls */}
+      {/* Bottom-right: controls hint + path toggle */}
       <div className="absolute bottom-3 right-3 z-40 flex flex-col items-end gap-1.5 pointer-events-auto">
         <div
           className="px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur-sm text-center"
@@ -458,7 +668,7 @@ export function NeighborhoodMap() {
             border: "1.5px solid rgba(0,0,0,0.12)",
           }}
         >
-          Usa WASD o flechas para mover
+          WASD/flechas · E para entrar
         </div>
         {showPaths && hoveredCell && (
           <div
@@ -487,7 +697,7 @@ export function NeighborhoodMap() {
         </button>
       </div>
 
-      {/* Bottom-left: Virtual Joystick */}
+      {/* Bottom-left: virtual joystick */}
       <div
         ref={joystickRef}
         className="absolute bottom-4 left-4 z-40 w-32 h-32 rounded-full pointer-events-auto touch-none select-none"
@@ -502,15 +712,15 @@ export function NeighborhoodMap() {
         onPointerUp={handleJoystickEnd}
         onPointerLeave={handleJoystickEnd}
       >
-        {/* Joystick indicator cross */}
         <div className="absolute inset-0 flex items-center justify-center opacity-50">
           <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent" />
           <div className="absolute h-full w-px bg-gradient-to-b from-transparent via-gray-400 to-transparent" />
         </div>
-        
-        {/* Center dot */}
         <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 opacity-40" />
       </div>
+
+      {/* Active zone modal */}
+      {activeZone && <ZoneModal zone={activeZone} onClose={() => setActiveZone(null)} />}
     </div>
   )
 }
