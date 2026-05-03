@@ -826,77 +826,93 @@ export function NeighborhoodMap() {
         )}
       </div>
 
-      {/* Cartel/tablero del mapa — click exclusivo sobre el mapboard (x:10,y:3,w:3,h:2) */}
-      <button
-        onClick={() => setShowMinimap(true)}
-        className="absolute pointer-events-auto group"
-        style={{
-          left:       `${10 * cellW}%`,
-          top:        `${3  * cellH}%`,
-          width:      `${3  * cellW}%`,
-          height:     `${2  * cellH}%`,
-          cursor:     "pointer",
-          background: "transparent",
-          border:     showPaths ? "2px dashed rgba(255,200,0,0.9)" : "none",
-          padding:    0,
-          display:    "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        title="Ver minimapa"
-        aria-label="Abrir minimapa"
-      >
-        {/* Map icon badge — visible over the board */}
-        <div
-          style={{
-            display:        "flex",
-            flexDirection:  "column",
-            alignItems:     "center",
-            justifyContent: "center",
-            gap:            2,
-            background:     "#5d4037",
-            border:         "3px solid #4e342e",
-            borderRadius:   "4px",
-            padding:        "4px 7px",
-            boxShadow:      "inset -2px -2px 0 #3e2723, inset 2px 2px 0 #8d6e63, 0 3px 0 #3e2723",
-            transition:     "transform 0.15s ease",
-            transform:      "scale(1)",
-            pointerEvents:  "none",
-          }}
-          className="group-hover:scale-110 group-active:scale-95"
-        >
-          {/* Simple map icon via SVG */}
-          <svg
-            width="18"
-            height="14"
-            viewBox="0 0 18 14"
-            fill="none"
-            style={{ display: "block" }}
+      {/* Cartel del mapa — pin idéntico al de las zonas, anclado al tablero */}
+      {(() => {
+        const PW = 44
+        const TAIL = 14
+        const PH = PW + TAIL
+        const R  = PW / 2
+        // Colors: amber/dorado para diferenciarlo de los otros pins
+        const pinColor     = "#f59e0b"
+        const pinColorDark = "#b45309"
+        return (
+          <button
+            onClick={() => setShowMinimap(true)}
+            className="absolute pointer-events-auto"
+            style={{
+              // Anchor tip of pin to center of mapboard object (x:11.5, y:5)
+              left:   `${11.5 * cellW}%`,
+              top:    `${5    * cellH}%`,
+              width:  PW,
+              height: PH,
+              transform:       `translate(-50%, -${PH}px)`,
+              transformOrigin: "bottom center",
+              cursor:    "pointer",
+              background: "transparent",
+              border:    showPaths ? "2px dashed rgba(255,200,0,0.9)" : "none",
+              padding:   0,
+              transition: "transform 0.15s ease",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1.12)`)}
+            onMouseLeave={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1)`)}
+            onMouseDown ={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(0.96)`)}
+            onMouseUp   ={e => (e.currentTarget.style.transform = `translate(-50%, -${PH}px) scale(1.12)`)}
+            title="Ver minimapa"
+            aria-label="Abrir minimapa"
           >
-            {/* Map scroll shape */}
-            <rect x="0" y="1" width="18" height="12" rx="1" fill="#fff8e1" stroke="#4e342e" strokeWidth="1.5" />
-            {/* Fold lines */}
-            <line x1="6"  y1="1" x2="6"  y2="13" stroke="#bcaaa4" strokeWidth="1" />
-            <line x1="12" y1="1" x2="12" y2="13" stroke="#bcaaa4" strokeWidth="1" />
-            {/* Location dot */}
-            <circle cx="9" cy="7" r="2" fill="#e53935" stroke="#4e342e" strokeWidth="1" />
-            {/* Top-bottom folds */}
-            <path d="M0 1 Q3 0 6 1" stroke="#8d6e63" strokeWidth="1" fill="none" />
-            <path d="M12 1 Q15 0 18 1" stroke="#8d6e63" strokeWidth="1" fill="none" />
-            <path d="M0 13 Q3 14 6 13" stroke="#8d6e63" strokeWidth="1" fill="none" />
-            <path d="M12 13 Q15 14 18 13" stroke="#8d6e63" strokeWidth="1" fill="none" />
-          </svg>
-          <span style={{
-            color:       "#fff8e1",
-            fontSize:    "7px",
-            fontWeight:  800,
-            letterSpacing: "0.4px",
-            lineHeight:  1,
-          }}>
-            MAPA
-          </span>
-        </div>
-      </button>
+            {/* Drop shadow */}
+            <div style={{
+              position:    "absolute",
+              bottom:      -4,
+              left:        "50%",
+              transform:   "translateX(-50%)",
+              width:       PW * 0.6,
+              height:      6,
+              borderRadius:"50%",
+              background:  "rgba(0,0,0,0.25)",
+              filter:      "blur(3px)",
+              pointerEvents: "none",
+            }} />
+
+            {/* Pin SVG — same structure as ZoneMarker */}
+            <svg
+              width={PW}
+              height={PH}
+              viewBox={`0 0 ${PW} ${PH}`}
+              style={{ display: "block", overflow: "visible", pointerEvents: "none" }}
+            >
+              {/* Circle border */}
+              <circle cx={PW / 2} cy={R} r={R}     fill={pinColorDark} />
+              {/* Circle fill */}
+              <circle cx={PW / 2} cy={R} r={R - 2} fill={pinColor} />
+              {/* Shine */}
+              <circle cx={PW / 2 - R * 0.25} cy={R * 0.4} r={R * 0.22} fill="rgba(255,255,255,0.35)" />
+              {/* Tail */}
+              <polygon
+                points={`${PW/2},${PW} ${PW/2 - R*0.45},${PW*0.7} ${PW/2 + R*0.45},${PW*0.7}`}
+                fill={pinColorDark}
+              />
+              {/* Map scroll icon centered in circle */}
+              <g transform={`translate(${PW / 2}, ${R})`}>
+                <foreignObject x={-11} y={-9} width={22} height={18}>
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    style={{ width: 22, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+                      <rect x="0.75" y="1.75" width="18.5" height="12.5" rx="1" fill="#fff8e1" stroke="#7c3f00" strokeWidth="1.5"/>
+                      <line x1="7"  y1="2" x2="7"  y2="14" stroke="#d4a96a" strokeWidth="1"/>
+                      <line x1="13" y1="2" x2="13" y2="14" stroke="#d4a96a" strokeWidth="1"/>
+                      <circle cx="10" cy="8" r="2.2" fill="#e53935" stroke="#7c3f00" strokeWidth="1.2"/>
+                      <circle cx="10" cy="8" r="0.8" fill="#fff8e1"/>
+                    </svg>
+                  </div>
+                </foreignObject>
+              </g>
+            </svg>
+          </button>
+        )
+      })()}
 
       {/* Zone pins */}
       {ZONES.map((zone) => (
