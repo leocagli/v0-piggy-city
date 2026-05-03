@@ -219,6 +219,29 @@ export function NeighborhoodMap() {
         )}
       </div>
 
+      {/* ── Piggy — centered focal character over the fountain ── */}
+      <div
+        className="absolute z-30 pointer-events-none"
+        style={{
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -62%)",
+        }}
+      >
+        <img
+          src="/piggy.png"
+          alt="Piggy"
+          style={{
+            width: "clamp(80px, 9vw, 130px)",
+            height: "auto",
+            filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.55)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+            animation: "piggyFloat 3s ease-in-out infinite",
+            imageRendering: "pixelated",
+          }}
+          draggable={false}
+        />
+      </div>
+
       {/* ══ FLOATING UI — corners only, no center obstruction ══ */}
 
       {/* Top-left: Nature + Business */}
