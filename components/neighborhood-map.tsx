@@ -274,7 +274,7 @@ function CharacterSprite({
   )
 }
 
-// ── Zone Marker (label on the map) ───────────────────────────────────────────
+// ── Zone Marker (label on the map) - Pixel Art Style ─────────────────────────
 function ZoneMarker({
   zone,
   isNear,
@@ -299,39 +299,53 @@ function ZoneMarker({
       }}
       aria-label={`Entrar a ${zone.title}`}
     >
+      {/* Pixel art style panel */}
       <div
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full shadow-lg transition-all duration-200 group-hover:scale-110 group-active:scale-95 backdrop-blur-sm font-bold text-xs whitespace-nowrap"
+        className="relative flex items-center gap-1.5 px-3 py-2 transition-transform duration-150 group-hover:scale-105 group-active:scale-95"
         style={{
-          background: isNear ? zone.color : "rgba(255,255,255,0.92)",
-          color: isNear ? "#ffffff" : zone.color,
-          border: `2px solid ${zone.color}`,
+          background: isNear ? "#5d4037" : "#f5e6d3",
+          color: isNear ? "#fff8e1" : "#4e342e",
+          border: "4px solid #4e342e",
+          borderRadius: "2px",
           boxShadow: isNear
-            ? `0 0 0 4px ${zone.color}33, 0 4px 14px ${zone.color}66`
-            : `0 2px 8px rgba(0,0,0,0.2)`,
-          animation: isNear ? "marker-pulse 1.2s ease-in-out infinite" : "none",
+            ? "inset -3px -3px 0 #3e2723, inset 3px 3px 0 #8d6e63, 0 6px 0 #3e2723"
+            : "inset -3px -3px 0 #d7ccc8, inset 3px 3px 0 #fff8e1, 0 4px 0 #4e342e",
+          fontFamily: "inherit",
+          fontWeight: 800,
+          fontSize: "11px",
+          letterSpacing: "0.5px",
+          textTransform: "uppercase",
+          imageRendering: "pixelated",
+          animation: isNear ? "marker-pulse 1s ease-in-out infinite" : "none",
         }}
       >
-        <Icon className="w-3.5 h-3.5 shrink-0" />
+        <Icon className="w-4 h-4 shrink-0" strokeWidth={3} />
         <span>{zone.label}</span>
       </div>
       {isNear && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+          className="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-1"
           style={{
             top: "100%",
-            background: zone.color,
-            color: "#ffffff",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+            background: "#ffcc02",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "2px",
+            boxShadow: "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066, 0 3px 0 #4e342e",
+            fontSize: "10px",
+            fontWeight: 800,
+            letterSpacing: "0.5px",
+            whiteSpace: "nowrap",
           }}
         >
-          Press E
+          PRESS E
         </div>
       )}
     </button>
   )
 }
 
-// ── Zone Modal ───────────────────────────────────────────────────────────────
+// ── Zone Modal - Pixel Art Style ─────────────────────────────────────────────
 function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
   const Icon = zone.icon
 
@@ -348,62 +362,94 @@ function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(30, 20, 10, 0.75)" }}
       onClick={onClose}
     >
+      {/* Pixel art window frame */}
       <div
-        className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
-        style={{ background: "#ffffff" }}
+        className="relative w-full max-w-sm"
+        style={{
+          background: "#f5e6d3",
+          border: "6px solid #4e342e",
+          borderRadius: "4px",
+          boxShadow: "inset -4px -4px 0 #d7ccc8, inset 4px 4px 0 #fff8e1, 0 8px 0 #3e2723, 0 12px 24px rgba(0,0,0,0.4)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header bar */}
         <div
-          className="p-5 flex items-start gap-3"
-          style={{ background: zone.bgColor, borderBottom: `3px solid ${zone.color}` }}
+          className="flex items-center gap-3 px-4 py-3"
+          style={{
+            background: "#5d4037",
+            borderBottom: "4px solid #4e342e",
+            boxShadow: "inset 0 -3px 0 #3e2723, inset 0 3px 0 #8d6e63",
+          }}
         >
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md"
-            style={{ background: zone.color }}
+            className="w-10 h-10 flex items-center justify-center shrink-0"
+            style={{
+              background: "#ffcc02",
+              border: "3px solid #4e342e",
+              borderRadius: "2px",
+              boxShadow: "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066",
+            }}
           >
-            <Icon className="w-6 h-6 text-white" />
+            <Icon className="w-5 h-5" style={{ color: "#4e342e" }} strokeWidth={3} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold leading-tight" style={{ color: zone.color }}>
+            <h2
+              className="text-lg leading-tight"
+              style={{ color: "#fff8e1", fontWeight: 800, letterSpacing: "0.5px" }}
+            >
               {zone.title}
             </h2>
-            <p className="text-sm mt-0.5" style={{ color: zone.color, opacity: 0.85 }}>
+            <p className="text-xs mt-0.5" style={{ color: "#d7ccc8", fontWeight: 600 }}>
               {zone.subtitle}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:bg-black/10"
+            className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform hover:scale-110 active:scale-90"
+            style={{
+              background: "#c62828",
+              border: "3px solid #4e342e",
+              borderRadius: "2px",
+              boxShadow: "inset -2px -2px 0 #b71c1c, inset 2px 2px 0 #ef5350",
+            }}
             aria-label="Cerrar"
           >
-            <X className="w-4 h-4" style={{ color: zone.color }} />
+            <X className="w-4 h-4" style={{ color: "#fff8e1" }} strokeWidth={3} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-4">
           {isFAQ && (
-            <div className="mb-4 p-3 rounded-xl" style={{ background: zone.bgColor }}>
+            <div
+              className="mb-4 p-3"
+              style={{
+                background: "#fff8e1",
+                border: "3px solid #4e342e",
+                borderRadius: "2px",
+                boxShadow: "inset -2px -2px 0 #f5e6d3, inset 2px 2px 0 #fffde7",
+              }}
+            >
               <div className="flex items-center gap-3 mb-2">
-                <Keyboard className="w-4 h-4" style={{ color: zone.color }} />
-                <span className="text-xs font-bold" style={{ color: zone.color }}>
+                <Keyboard className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
+                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
                   Teclado: WASD o flechas
                 </span>
               </div>
               <div className="flex items-center gap-3 mb-2">
-                <Gamepad2 className="w-4 h-4" style={{ color: zone.color }} />
-                <span className="text-xs font-bold" style={{ color: zone.color }}>
-                  Joystick virtual abajo a la izquierda
+                <Gamepad2 className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
+                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
+                  Joystick virtual (abajo izquierda)
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <MousePointerClick className="w-4 h-4" style={{ color: zone.color }} />
-                <span className="text-xs font-bold" style={{ color: zone.color }}>
-                  Click en una etiqueta para entrar
+                <MousePointerClick className="w-4 h-4" style={{ color: "#5d4037" }} strokeWidth={3} />
+                <span style={{ color: "#4e342e", fontSize: "11px", fontWeight: 700 }}>
+                  Click en etiqueta para entrar
                 </span>
               </div>
             </div>
@@ -413,26 +459,39 @@ function ZoneModal({ zone, onClose }: { zone: Zone; onClose: () => void }) {
             {zone.options.map((option) => (
               <div
                 key={option.label}
-                className="p-3 rounded-xl transition-colors hover:bg-black/5 cursor-pointer"
+                className="p-3 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{
-                  border: `1.5px solid ${zone.color}33`,
-                  background: "#fafafa",
+                  background: "#fff8e1",
+                  border: "3px solid #4e342e",
+                  borderRadius: "2px",
+                  boxShadow: "inset -2px -2px 0 #f5e6d3, inset 2px 2px 0 #fffde7, 0 3px 0 #4e342e",
                 }}
               >
-                <div className="font-bold text-sm mb-0.5" style={{ color: zone.color }}>
+                <div style={{ color: "#5d4037", fontSize: "13px", fontWeight: 800, marginBottom: "2px" }}>
                   {option.label}
                 </div>
-                <div className="text-xs text-gray-600 leading-snug">{option.description}</div>
+                <div style={{ color: "#6d4c41", fontSize: "11px", fontWeight: 500, lineHeight: 1.4 }}>
+                  {option.description}
+                </div>
               </div>
             ))}
           </div>
 
           <button
             onClick={onClose}
-            className="mt-4 w-full py-2.5 rounded-xl font-bold text-sm text-white transition-transform hover:scale-[1.02] active:scale-95"
-            style={{ background: zone.color }}
+            className="mt-4 w-full py-3 transition-transform hover:scale-[1.02] active:scale-95"
+            style={{
+              background: "#ffcc02",
+              color: "#4e342e",
+              border: "4px solid #4e342e",
+              borderRadius: "2px",
+              boxShadow: "inset -3px -3px 0 #e6b800, inset 3px 3px 0 #ffe066, 0 4px 0 #4e342e",
+              fontWeight: 800,
+              fontSize: "13px",
+              letterSpacing: "0.5px",
+            }}
           >
-            Cerrar
+            CERRAR
           </button>
         </div>
       </div>
@@ -658,52 +717,71 @@ export function NeighborhoodMap() {
         <CharacterSprite direction={piggyDirection} isMoving={isMoving} />
       </div>
 
-      {/* Bottom-right: controls hint + path toggle */}
-      <div className="absolute bottom-3 right-3 z-40 flex flex-col items-end gap-1.5 pointer-events-auto">
+      {/* Bottom-right: controls hint + path toggle - Pixel Art Style */}
+      <div className="absolute bottom-3 right-3 z-40 flex flex-col items-end gap-2 pointer-events-auto">
         <div
-          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur-sm text-center"
+          className="px-3 py-2 text-center"
           style={{
-            background: "rgba(255,255,255,0.90)",
-            color: "#4a3500",
-            border: "1.5px solid rgba(0,0,0,0.12)",
+            background: "#f5e6d3",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "2px",
+            boxShadow: "inset -2px -2px 0 #d7ccc8, inset 2px 2px 0 #fff8e1, 0 3px 0 #3e2723",
+            fontSize: "10px",
+            fontWeight: 700,
+            letterSpacing: "0.3px",
           }}
         >
-          WASD/flechas · E para entrar
+          WASD/FLECHAS | E = ENTRAR
         </div>
         {showPaths && hoveredCell && (
           <div
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold shadow-lg backdrop-blur-sm"
+            className="px-3 py-1.5"
             style={{
-              background: "rgba(255,255,255,0.90)",
-              color: isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "#15803d" : "#dc2626",
-              border: "1.5px solid rgba(0,0,0,0.12)",
+              background: isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "#81c784" : "#e57373",
+              color: "#fff",
+              border: "3px solid #4e342e",
+              borderRadius: "2px",
+              boxShadow: "0 3px 0 #3e2723",
+              fontSize: "10px",
+              fontWeight: 700,
             }}
           >
-            ({hoveredCell.x}, {hoveredCell.y}) —{" "}
-            {isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "Transitable" : "Bloqueado"}
+            ({hoveredCell.x}, {hoveredCell.y}) {isWalkable(hoveredCell.x, hoveredCell.y, grid) ? "OK" : "X"}
           </div>
         )}
         <button
           onClick={() => setShowPaths((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm"
+          className="flex items-center gap-2 px-3 py-2 transition-transform hover:scale-105 active:scale-95"
           style={{
-            background: showPaths ? "rgba(255,215,60,0.92)" : "rgba(255,255,255,0.88)",
-            border: "2px solid rgba(160,120,40,0.6)",
-            color: "#4a3500",
+            background: showPaths ? "#ffcc02" : "#f5e6d3",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "2px",
+            boxShadow: showPaths
+              ? "inset -2px -2px 0 #e6b800, inset 2px 2px 0 #ffe066, 0 3px 0 #3e2723"
+              : "inset -2px -2px 0 #d7ccc8, inset 2px 2px 0 #fff8e1, 0 3px 0 #3e2723",
+            fontSize: "10px",
+            fontWeight: 800,
+            letterSpacing: "0.3px",
           }}
         >
-          {showPaths ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          {showPaths ? "Ocultar caminos" : "Caminos"}
+          {showPaths ? <Eye className="w-4 h-4" strokeWidth={3} /> : <EyeOff className="w-4 h-4" strokeWidth={3} />}
+          {showPaths ? "OCULTAR" : "CAMINOS"}
         </button>
       </div>
 
-      {/* Bottom-left: virtual joystick */}
+      {/* Bottom-left: virtual joystick - Pixel Art Style */}
       <div
         ref={joystickRef}
-        className="absolute bottom-4 left-4 z-40 w-32 h-32 rounded-full pointer-events-auto touch-none select-none"
+        className="absolute bottom-4 left-4 z-40 w-28 h-28 pointer-events-auto touch-none select-none"
         style={{
-          background: joystickActive ? "rgba(100, 150, 255, 0.15)" : "rgba(100, 100, 100, 0.08)",
-          border: "2px dashed rgba(100, 100, 100, 0.3)",
+          background: joystickActive ? "#5d4037" : "#f5e6d3",
+          border: "4px solid #4e342e",
+          borderRadius: "50%",
+          boxShadow: joystickActive
+            ? "inset -4px -4px 0 #3e2723, inset 4px 4px 0 #8d6e63, 0 4px 0 #3e2723"
+            : "inset -4px -4px 0 #d7ccc8, inset 4px 4px 0 #fff8e1, 0 4px 0 #4e342e",
           cursor: "grab",
           userSelect: "none",
         }}
@@ -712,11 +790,27 @@ export function NeighborhoodMap() {
         onPointerUp={handleJoystickEnd}
         onPointerLeave={handleJoystickEnd}
       >
-        <div className="absolute inset-0 flex items-center justify-center opacity-50">
-          <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent" />
-          <div className="absolute h-full w-px bg-gradient-to-b from-transparent via-gray-400 to-transparent" />
+        {/* D-pad style cross */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="absolute w-1/2 h-2"
+            style={{ background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: "1px" }}
+          />
+          <div
+            className="absolute h-1/2 w-2"
+            style={{ background: joystickActive ? "#8d6e63" : "#bcaaa4", borderRadius: "1px" }}
+          />
         </div>
-        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 opacity-40" />
+        {/* Center circle */}
+        <div
+          className="absolute top-1/2 left-1/2 w-5 h-5 transform -translate-x-1/2 -translate-y-1/2"
+          style={{
+            background: joystickActive ? "#ffcc02" : "#bcaaa4",
+            border: "2px solid #4e342e",
+            borderRadius: "50%",
+            boxShadow: joystickActive ? "inset -1px -1px 0 #e6b800, inset 1px 1px 0 #ffe066" : "none",
+          }}
+        />
       </div>
 
       {/* Active zone modal */}
