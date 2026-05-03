@@ -347,8 +347,9 @@ export function NeighborhoodMap() {
             height: "clamp(80px, 9vw, 130px)",
             backgroundImage: `url(${walkAnimationSheet})`,
             backgroundSize: "400% 100%",
-            backgroundPosition: `${(animationFrame / 3) * 100}% 0%`,
+            backgroundPosition: `${animationFrame * 25}% 0%`,
             backgroundRepeat: "no-repeat",
+            backgroundAttachment: "fixed",
             imageRendering: "pixelated",
           }}
         />
