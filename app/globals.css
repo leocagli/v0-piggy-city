@@ -159,6 +159,19 @@
   50%      { transform: translateY(-6px); }
 }
 
+/* 4-frame walk cycle — steps(4) shifts the sprite sheet one frame at a time.
+   The sheet is 4 frames wide (width:400%), so -100% = full loop. */
+@keyframes piggy-walk {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+/* Click-to-walk destination ripple */
+@keyframes click-ripple {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
 /* Pulse animation for zone markers when Piggy is nearby */
 @keyframes marker-pulse {
   0%, 100% { transform: scale(1); }
