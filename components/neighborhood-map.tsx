@@ -14,10 +14,16 @@ import {
   Gamepad2,
   MousePointerClick,
   ChevronRight,
+  Coins,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 import { NPCLeaf } from "./npc-leaf"
 import { NPCBusinessBear } from "./npc-business-bear"
 import { NPCHomeBear } from "./npc-home-bear"
+import { Coin } from "./coin"
+import { GameStorage } from "@/lib/game-storage"
+import { audio } from "@/lib/audio"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -343,6 +349,33 @@ const ZONES: Zone[] = [
 
 const manhattanDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+
+// ── Collectible coins ──────────────────────────────────────────────────────────
+// 16 spawn points (4 per themed zone), all verified walkable + reachable from the
+// spawn cell (11,9). Stable string ids so collection survives across saves.
+const COINS: { id: string; x: number; y: number; zone: ZoneId }[] = [
+  // NATURE (top-left green band, near Leaf NPC @7,5)
+  { id: "n1", x: 4,  y: 2,  zone: "nature"   },
+  { id: "n2", x: 7,  y: 3,  zone: "nature"   },
+  { id: "n3", x: 5,  y: 6,  zone: "nature"   },
+  { id: "n4", x: 8,  y: 8,  zone: "nature"   },
+  // HOME (top-center band leading to the Home pin)
+  { id: "h1", x: 11, y: 2,  zone: "home"     },
+  { id: "h2", x: 13, y: 4,  zone: "home"     },
+  { id: "h3", x: 13, y: 6,  zone: "home"     },
+  { id: "h4", x: 12, y: 8,  zone: "home"     },
+  // BUSINESS (bottom-center corridor toward the Business pin)
+  { id: "b1", x: 9,  y: 11, zone: "business" },
+  { id: "b2", x: 10, y: 13, zone: "business" },
+  { id: "b3", x: 9,  y: 15, zone: "business" },
+  { id: "b4", x: 12, y: 15, zone: "business" },
+  // ABSTRACT (only walkable corridor near the portal is y=7; +central-right)
+  { id: "a1", x: 16, y: 7,  zone: "abstract" },
+  { id: "a2", x: 18, y: 7,  zone: "abstract" },
+  { id: "a3", x: 20, y: 7,  zone: "abstract" },
+  { id: "a4", x: 13, y: 11, zone: "abstract" },
+]
+const TOTAL_COINS = COINS.length // 16
 
 // ── Sprite ────────────────────────────────────────────────────────────────────
 const SPRITE_SIZE = 100
@@ -870,6 +903,18 @@ export function NeighborhoodMap() {
   const clickFxId = useRef(0)
   const [clickFx, setClickFx] = useState<{ x: number; y: number; id: number } | null>(null)
 
+  // ── Game state: coins, quests, audio (persisted via GameStorage) ──
+  const hydratedRef = useRef(false)       // blocks saves until first load completes
+  const wasMovingRef = useRef(false)      // detect moving true->false edge
+  const stepAccRef = useRef(0)            // footstep throttle accumulator
+  const collectedRef = useRef<Set<string>>(new Set())
+  const zonesVisitedRef = useRef<Set<string>>(new Set())
+  const wonRef = useRef(false)
+  const [coins, setCoins] = useState(0)
+  const [zonesVisited, setZonesVisited] = useState(0)
+  const [muted, setMuted] = useState(false)
+  const [won, setWon] = useState(false)
+
   // Nearest interactable zone (within ~2 cells of its trigger point)
   const nearestZone = (() => {
     let closest: Zone | null = null
@@ -884,6 +929,57 @@ export function NeighborhoodMap() {
   // Keep refs in sync for use inside the rAF loop / stable handlers
   useEffect(() => { openZoneRef.current = openZone }, [openZone])
   useEffect(() => { nearestZoneRef.current = nearestZone })
+
+  // Hydrate persisted state AFTER mount (never in useState init — avoids the
+  // SSR/first-paint hydration mismatch). Restores both posRef and piggyPos.
+  useEffect(() => {
+    const s = GameStorage.load()
+    posRef.current = { x: s.pos.x, y: s.pos.y }
+    setPiggyPos({ x: s.pos.x, y: s.pos.y })
+    dirRef.current = s.dir
+    setPiggyDirection(s.dir)
+    collectedRef.current = new Set(s.collected)
+    setCoins(collectedRef.current.size)
+    zonesVisitedRef.current = new Set(s.zonesVisited)
+    setZonesVisited(zonesVisitedRef.current.size)
+    setMuted(s.muted)
+    audio.setMuted(s.muted)
+    if (collectedRef.current.size >= TOTAL_COINS) { wonRef.current = true; setWon(true) }
+    hydratedRef.current = true
+  }, [])
+
+  // Record a themed-zone visit (fountain "faq" excluded from the 4-zone quest)
+  const markVisited = useCallback((id: ZoneId) => {
+    if (id === "faq" || !hydratedRef.current || zonesVisitedRef.current.has(id)) return
+    zonesVisitedRef.current.add(id)
+    setZonesVisited(zonesVisitedRef.current.size)
+    GameStorage.queue({ zonesVisited: [...zonesVisitedRef.current] })
+  }, [])
+
+  const toggleMuted = useCallback(() => {
+    setMuted((m) => {
+      const next = !m
+      audio.setMuted(next)
+      GameStorage.queue({ muted: next })
+      return next
+    })
+  }, [])
+
+  // Clear all progress and start over (keeps the audio mute preference)
+  const resetGame = useCallback(() => {
+    collectedRef.current.clear()
+    zonesVisitedRef.current.clear()
+    wonRef.current = false
+    setCoins(0)
+    setZonesVisited(0)
+    setWon(false)
+    posRef.current = { x: 11, y: 9 }
+    setPiggyPos({ x: 11, y: 9 })
+    dirRef.current = "down"
+    setPiggyDirection("down")
+    GameStorage.queue({ coins: 0, collected: [], zonesVisited: [], pos: { x: 11, y: 9 }, dir: "down" })
+    GameStorage.flush()
+  }, [])
 
   // requestAnimationFrame loop — smooth, frame-rate-independent movement.
   // Reads held keys + analog joystick vector, applies velocity with per-axis
@@ -951,6 +1047,39 @@ export function NeighborhoodMap() {
       }
 
       const p = posRef.current
+
+      // ── Coin pickup (hot path: ref-based; only setState when a coin is taken) ──
+      if (hydratedRef.current) {
+        let picked = false
+        for (const c of COINS) {
+          if (collectedRef.current.has(c.id)) continue
+          const dx = c.x - p.x, dy = c.y - p.y
+          if (dx * dx + dy * dy < 0.49) { collectedRef.current.add(c.id); picked = true } // 0.7 cells, squared
+        }
+        if (picked) {
+          const n = collectedRef.current.size
+          setCoins(n)
+          audio.coin()
+          GameStorage.queue({ coins: n, collected: [...collectedRef.current] })
+          if (n >= TOTAL_COINS && !wonRef.current) { wonRef.current = true; setWon(true); audio.fanfare() }
+        }
+      }
+
+      // ── Footsteps (throttled, ref-based) + save resting spot on movement-stop ──
+      if (moving) {
+        if (!wasMovingRef.current) { audio.footstep(); stepAccRef.current = 0 } // rising edge
+        else {
+          stepAccRef.current += dt
+          if (stepAccRef.current >= 0.3) { audio.footstep(); stepAccRef.current = 0 }
+        }
+      } else {
+        stepAccRef.current = 0
+        if (wasMovingRef.current && hydratedRef.current) {
+          GameStorage.queuePosition(p.x, p.y, dirRef.current) // debounced; not per-frame
+        }
+      }
+      wasMovingRef.current = moving
+
       // setState with unchanged values is a no-op in React, so idle frames don't re-render
       setPiggyPos((prev) => (prev.x !== p.x || prev.y !== p.y ? { x: p.x, y: p.y } : prev))
       setPiggyDirection(dirRef.current)
@@ -964,6 +1093,7 @@ export function NeighborhoodMap() {
   // Keyboard — track held keys (continuous movement) + interaction keys
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      audio.unlock() // idempotent — first gesture unlocks/ resumes the AudioContext
       if (e.key === "Escape") { setShowMinimap(false); setOpenZone(null); e.preventDefault(); return }
       const key = e.key.toLowerCase()
       if (openZoneRef.current) return
@@ -973,7 +1103,12 @@ export function NeighborhoodMap() {
         case "arrowleft":  case "a": heldKeys.current.add("left");  e.preventDefault(); break
         case "arrowright": case "d": heldKeys.current.add("right"); e.preventDefault(); break
         case "e": case "enter":
-          if (nearestZoneRef.current) { setOpenZone(nearestZoneRef.current); e.preventDefault() }
+          if (nearestZoneRef.current) {
+            markVisited(nearestZoneRef.current.id)
+            audio.zoneEnter()
+            setOpenZone(nearestZoneRef.current)
+            e.preventDefault()
+          }
           break
       }
     }
@@ -986,15 +1121,19 @@ export function NeighborhoodMap() {
       }
     }
     const clear = () => heldKeys.current.clear()
+    // One-shot pointer unlock for touch/mouse users (joystick / click / pin taps)
+    const unlockPointer = () => { audio.unlock(); window.removeEventListener("pointerdown", unlockPointer) }
     window.addEventListener("keydown", down)
     window.addEventListener("keyup", up)
     window.addEventListener("blur", clear)
+    window.addEventListener("pointerdown", unlockPointer)
     return () => {
       window.removeEventListener("keydown", down)
       window.removeEventListener("keyup", up)
       window.removeEventListener("blur", clear)
+      window.removeEventListener("pointerdown", unlockPointer)
     }
-  }, [])
+  }, [markVisited])
 
   // ── Virtual joystick (analog) ────────────────────────────────────────────────
   const updateJoystick = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -1034,6 +1173,20 @@ export function NeighborhoodMap() {
 
   // Opening a zone cancels any in-progress walk
   useEffect(() => { if (openZone) pathRef.current = [] }, [openZone])
+
+  // Persist on tab hide/close (mobile-safe) and stop audio on unmount
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === "hidden") GameStorage.flush() }
+    const onPageHide = () => GameStorage.flush()
+    document.addEventListener("visibilitychange", onHide)
+    window.addEventListener("pagehide", onPageHide)
+    return () => {
+      document.removeEventListener("visibilitychange", onHide)
+      window.removeEventListener("pagehide", onPageHide)
+      GameStorage.flush()
+      audio.dispose()
+    }
+  }, [])
 
   // ── Click / tap to walk (A* pathfinding) ──────────────────────────────────────
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -1204,7 +1357,14 @@ export function NeighborhoodMap() {
           zone={zone}
           isNear={nearestZone?.id === zone.id}
           isOpen={openZone?.id === zone.id}
-          onClick={(e) => { e.stopPropagation(); setOpenZone((prev) => (prev?.id === zone.id ? null : zone)) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpenZone((prev) => {
+              const next = prev?.id === zone.id ? null : zone
+              if (next) { markVisited(next.id); audio.zoneEnter() }
+              return next
+            })
+          }}
         />
       ))}
 
@@ -1353,6 +1513,43 @@ export function NeighborhoodMap() {
         />
       )}
 
+      {/* Collectible coins (walk over them to pick up) */}
+      {COINS.map((c) => (
+        <Coin key={c.id} x={c.x} y={c.y} cellW={cellW} cellH={cellH} collected={collectedRef.current.has(c.id)} />
+      ))}
+
+      {/* Top-left HUD — coin counter + zone-quest tracker */}
+      <div
+        className="absolute z-40 pointer-events-none"
+        style={{
+          top: "clamp(10px, 2.5vw, 14px)",
+          left: "clamp(10px, 2.5vw, 14px)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
+      >
+        <div
+          style={{
+            background: "#fffdf6", border: "3px solid #4e342e", borderRadius: 3,
+            padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "#b45309",
+            boxShadow: "0 3px 0 #3e2723", display: "flex", alignItems: "center", gap: 6,
+          }}
+        >
+          <Coins style={{ width: 14, height: 14 }} strokeWidth={2.5} />
+          {coins}/{TOTAL_COINS}
+        </div>
+        <div
+          style={{
+            background: "#fffdf6", border: "3px solid #4e342e", borderRadius: 3,
+            padding: "4px 10px", fontSize: 10, fontWeight: 700, color: "#4e342e",
+            boxShadow: "0 3px 0 #3e2723",
+          }}
+        >
+          Zonas {zonesVisited}/4
+        </div>
+      </div>
+
       {/* Piggy — smooth movement + animated 4-frame walk cycle.
           Size is 2×cell so it scales naturally with the map box.
           z-index follows y so Piggy overlaps NPCs correctly by depth. */}
@@ -1499,6 +1696,31 @@ export function NeighborhoodMap() {
             : <EyeOff style={{ width: 12, height: 12 }} strokeWidth={3} />
           }
         </button>
+
+        {/* Mute / unmute */}
+        <button
+          onClick={() => { audio.unlock(); toggleMuted() }}
+          aria-label={muted ? "Activar sonido" : "Silenciar"}
+          style={{
+            background: "#fffdf6",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "3px",
+            padding: "4px 8px",
+            fontSize: "9px",
+            fontWeight: 800,
+            boxShadow: "0 3px 0 #3e2723",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+          }}
+        >
+          {muted
+            ? <VolumeX style={{ width: 12, height: 12 }} strokeWidth={3} />
+            : <Volume2 style={{ width: 12, height: 12 }} strokeWidth={3} />
+          }
+        </button>
       </div>
 
       {/* Bottom-left: virtual joystick */}
@@ -1551,6 +1773,47 @@ export function NeighborhoodMap() {
           }} />
         </div>
       </div>
+
+      {/* Win celebration */}
+      {won && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(20,12,6,0.55)" }}
+        >
+          <div
+            style={{
+              background: "#fffdf6",
+              border: "5px solid #b45309",
+              borderRadius: 6,
+              padding: "20px 28px",
+              textAlign: "center",
+              boxShadow: "6px 6px 0 #7c3f00, 0 12px 40px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#b45309" }}>¡Felicidades!</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#4e342e", marginTop: 6 }}>
+              Recogiste las {TOTAL_COINS} monedas
+            </div>
+            <button
+              onClick={resetGame}
+              style={{
+                marginTop: 14,
+                background: "#ffcc02",
+                color: "#4e342e",
+                border: "3px solid #4e342e",
+                borderRadius: 4,
+                padding: "6px 16px",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 3px 0 #3e2723",
+              }}
+            >
+              Jugar de nuevo
+            </button>
+          </div>
+        </div>
+      )}
 
       </div> {/* end inner map container */}
     </div>

@@ -172,6 +172,18 @@
   100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
 }
 
+/* Collectible coins — flat spin (scaleX) + gentle bob. The bob re-declares the
+   wrapper's translate so it doesn't fight the cell-centering transform. */
+@keyframes coin-spin {
+  0%   { transform: scaleX(1); }
+  50%  { transform: scaleX(0.25); }
+  100% { transform: scaleX(1); }
+}
+@keyframes coin-bob {
+  0%, 100% { transform: translate(-50%, -50%); }
+  50%      { transform: translate(-50%, -62%); }
+}
+
 /* Pulse animation for zone markers when Piggy is nearby */
 @keyframes marker-pulse {
   0%, 100% { transform: scale(1); }
