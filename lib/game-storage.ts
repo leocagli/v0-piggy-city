@@ -4,7 +4,7 @@
 // No per-render reads. No per-frame writes (debounced + flush on hide). Zero deps.
 
 export const STORAGE_KEY = "piggy-city:v1"
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export type Dir = "up" | "down" | "left" | "right"
 
@@ -12,9 +12,11 @@ export interface GameSave {
   schemaVersion: number
   pos: { x: number; y: number } // FLOAT grid coords (posRef.current)
   dir: Dir
-  coins: number
-  collected: string[] // serialized Set<string> of coin ids
+  wallet: number // spendable coins (earned by pickups, spent in the shop)
+  collected: string[] // picked coin ids — drives progress/win + prevents respawn
   zonesVisited: string[] // serialized Set<ZoneId> (themed zones only)
+  owned: string[] // purchased accessory ids
+  equipped: string | null // currently equipped accessory id
   muted: boolean
 }
 
@@ -23,9 +25,11 @@ export const DEFAULTS: GameSave = {
   schemaVersion: SCHEMA_VERSION,
   pos: { x: 11, y: 9 }, // matches posRef = useRef({x:11,y:9})
   dir: "down", // matches piggyDirection initial "down"
-  coins: 0,
+  wallet: 0,
   collected: [],
   zonesVisited: [],
+  owned: [],
+  equipped: null,
   muted: false,
 }
 
@@ -48,13 +52,23 @@ function migrate(raw: any): GameSave {
     data?.dir === "up" || data?.dir === "down" || data?.dir === "left" || data?.dir === "right"
       ? data.dir
       : DEFAULTS.dir
+  const owned = Array.isArray(data?.owned) ? data.owned.filter((s: any) => typeof s === "string") : []
+  // Enforce the cross-field invariant at the trust boundary: a tampered/corrupt
+  // blob can't leave us "wearing" an accessory we don't own.
+  let equipped = typeof data?.equipped === "string" ? data.equipped : null
+  if (equipped !== null && !owned.includes(equipped)) equipped = null
   return {
     schemaVersion: SCHEMA_VERSION,
     pos,
     dir,
-    coins: Number.isFinite(data?.coins) ? data.coins : DEFAULTS.coins,
+    // v2: `wallet` replaced the old `coins` count — seed legacy (v1) saves from coins.
+    wallet: Number.isFinite(data?.wallet)
+      ? data.wallet
+      : Number.isFinite(data?.coins) ? data.coins : DEFAULTS.wallet,
     collected: Array.isArray(data?.collected) ? data.collected.filter((s: any) => typeof s === "string") : [],
     zonesVisited: Array.isArray(data?.zonesVisited) ? data.zonesVisited.filter((s: any) => typeof s === "string") : [],
+    owned,
+    equipped,
     muted: typeof data?.muted === "boolean" ? data.muted : DEFAULTS.muted,
   }
 }

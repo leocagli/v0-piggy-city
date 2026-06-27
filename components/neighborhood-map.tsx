@@ -17,13 +17,16 @@ import {
   Coins,
   Volume2,
   VolumeX,
+  ShoppingBag,
 } from "lucide-react"
 import { NPCLeaf } from "./npc-leaf"
 import { NPCBusinessBear } from "./npc-business-bear"
 import { NPCHomeBear } from "./npc-home-bear"
 import { Coin } from "./coin"
+import { Shop } from "./shop"
 import { GameStorage } from "@/lib/game-storage"
 import { audio } from "@/lib/audio"
+import { findAccessory } from "@/lib/accessories"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -910,8 +913,14 @@ export function NeighborhoodMap() {
   const collectedRef = useRef<Set<string>>(new Set())
   const zonesVisitedRef = useRef<Set<string>>(new Set())
   const wonRef = useRef(false)
-  const [coins, setCoins] = useState(0)
+  const walletRef = useRef(0)              // spendable balance — source of truth (hot path)
+  const showShopRef = useRef(false)        // pause movement/pickup while shopping
+  const [wallet, setWallet] = useState(0)
+  const [collectedCount, setCollectedCount] = useState(0)
   const [zonesVisited, setZonesVisited] = useState(0)
+  const [owned, setOwned] = useState<string[]>([])
+  const [equipped, setEquipped] = useState<string | null>(null)
+  const [showShop, setShowShop] = useState(false)
   const [muted, setMuted] = useState(false)
   const [won, setWon] = useState(false)
 
@@ -939,7 +948,11 @@ export function NeighborhoodMap() {
     dirRef.current = s.dir
     setPiggyDirection(s.dir)
     collectedRef.current = new Set(s.collected)
-    setCoins(collectedRef.current.size)
+    setCollectedCount(collectedRef.current.size)
+    walletRef.current = s.wallet
+    setWallet(s.wallet)
+    setOwned(s.owned)
+    setEquipped(s.equipped)
     zonesVisitedRef.current = new Set(s.zonesVisited)
     setZonesVisited(zonesVisitedRef.current.size)
     setMuted(s.muted)
@@ -947,6 +960,9 @@ export function NeighborhoodMap() {
     if (collectedRef.current.size >= TOTAL_COINS) { wonRef.current = true; setWon(true) }
     hydratedRef.current = true
   }, [])
+
+  // Keep showShopRef in sync (read inside the rAF loop / keyboard handler)
+  useEffect(() => { showShopRef.current = showShop }, [showShop])
 
   // Record a themed-zone visit (fountain "faq" excluded from the 4-zone quest)
   const markVisited = useCallback((id: ZoneId) => {
@@ -970,15 +986,46 @@ export function NeighborhoodMap() {
     collectedRef.current.clear()
     zonesVisitedRef.current.clear()
     wonRef.current = false
-    setCoins(0)
+    walletRef.current = 0
+    setWallet(0)
+    setCollectedCount(0)
     setZonesVisited(0)
+    setOwned([])
+    setEquipped(null)
     setWon(false)
     posRef.current = { x: 11, y: 9 }
     setPiggyPos({ x: 11, y: 9 })
     dirRef.current = "down"
     setPiggyDirection("down")
-    GameStorage.queue({ coins: 0, collected: [], zonesVisited: [], pos: { x: 11, y: 9 }, dir: "down" })
+    GameStorage.queue({
+      wallet: 0, collected: [], zonesVisited: [], owned: [], equipped: null,
+      pos: { x: 11, y: 9 }, dir: "down",
+    })
     GameStorage.flush()
+  }, [])
+
+  // ── Shop: buy / equip / unequip accessories ───────────────────────────────────
+  const buyAccessory = useCallback((id: string) => {
+    const item = findAccessory(id)
+    if (!item || owned.includes(id) || wallet < item.cost) return
+    walletRef.current = wallet - item.cost
+    setWallet(walletRef.current)
+    const nextOwned = [...owned, id]
+    setOwned(nextOwned)
+    setEquipped(id) // auto-equip on purchase
+    audio.coin()
+    GameStorage.queue({ wallet: walletRef.current, owned: nextOwned, equipped: id })
+  }, [owned, wallet])
+
+  const equipAccessory = useCallback((id: string) => {
+    setEquipped(id)
+    audio.zoneEnter()
+    GameStorage.queue({ equipped: id })
+  }, [])
+
+  const unequipAccessory = useCallback(() => {
+    setEquipped(null)
+    GameStorage.queue({ equipped: null })
   }, [])
 
   // requestAnimationFrame loop — smooth, frame-rate-independent movement.
@@ -1005,14 +1052,15 @@ export function NeighborhoodMap() {
       const manualMag = Math.hypot(ix, iy)
       let moving = false
 
+      const blocked = openZoneRef.current || showShopRef.current
       if (manualMag > 0.18) {
         // Manual input (keys/joystick) cancels any active click-to-walk path
         pathRef.current = []
-        if (!openZoneRef.current) {
+        if (!blocked) {
           ix /= manualMag; iy /= manualMag
           moving = true
         } else { ix = 0; iy = 0 }
-      } else if (pathRef.current.length && !openZoneRef.current) {
+      } else if (pathRef.current.length && !blocked) {
         // Follow the A* path: head toward the next waypoint, popping reached ones
         const p = posRef.current
         let wp = pathRef.current[0]
@@ -1049,18 +1097,20 @@ export function NeighborhoodMap() {
       const p = posRef.current
 
       // ── Coin pickup (hot path: ref-based; only setState when a coin is taken) ──
-      if (hydratedRef.current) {
-        let picked = false
+      if (hydratedRef.current && !showShopRef.current) {
+        let picked = 0
         for (const c of COINS) {
           if (collectedRef.current.has(c.id)) continue
           const dx = c.x - p.x, dy = c.y - p.y
-          if (dx * dx + dy * dy < 0.49) { collectedRef.current.add(c.id); picked = true } // 0.7 cells, squared
+          if (dx * dx + dy * dy < 0.49) { collectedRef.current.add(c.id); picked++ } // 0.7 cells, squared
         }
-        if (picked) {
+        if (picked > 0) {
           const n = collectedRef.current.size
-          setCoins(n)
+          walletRef.current += picked
+          setWallet(walletRef.current)
+          setCollectedCount(n)
           audio.coin()
-          GameStorage.queue({ coins: n, collected: [...collectedRef.current] })
+          GameStorage.queue({ wallet: walletRef.current, collected: [...collectedRef.current] })
           if (n >= TOTAL_COINS && !wonRef.current) { wonRef.current = true; setWon(true); audio.fanfare() }
         }
       }
@@ -1094,9 +1144,9 @@ export function NeighborhoodMap() {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       audio.unlock() // idempotent — first gesture unlocks/ resumes the AudioContext
-      if (e.key === "Escape") { setShowMinimap(false); setOpenZone(null); e.preventDefault(); return }
+      if (e.key === "Escape") { setShowMinimap(false); setOpenZone(null); setShowShop(false); e.preventDefault(); return }
       const key = e.key.toLowerCase()
-      if (openZoneRef.current) return
+      if (openZoneRef.current || showShopRef.current) return
       switch (key) {
         case "arrowup":    case "w": heldKeys.current.add("up");    e.preventDefault(); break
         case "arrowdown":  case "s": heldKeys.current.add("down");  e.preventDefault(); break
@@ -1171,8 +1221,8 @@ export function NeighborhoodMap() {
     setJoyKnob({ x: 0, y: 0 })
   }, [])
 
-  // Opening a zone cancels any in-progress walk
-  useEffect(() => { if (openZone) pathRef.current = [] }, [openZone])
+  // Opening a zone or the shop cancels any in-progress walk
+  useEffect(() => { if (openZone || showShop) pathRef.current = [] }, [openZone, showShop])
 
   // Persist on tab hide/close (mobile-safe) and stop audio on unmount
   useEffect(() => {
@@ -1190,7 +1240,7 @@ export function NeighborhoodMap() {
 
   // ── Click / tap to walk (A* pathfinding) ──────────────────────────────────────
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (openZoneRef.current) return
+    if (openZoneRef.current || showShopRef.current) return
     // Ignore clicks on interactive overlays (pins, buttons, joystick)
     const target = e.target as HTMLElement
     if (target.closest("button") || target.closest("[data-no-walk]")) return
@@ -1214,6 +1264,7 @@ export function NeighborhoodMap() {
   const cellH = 100 / GRID_ROWS
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
+  const equippedAccessory = findAccessory(equipped)
 
   return (
     // Outer: full screen, black bg, centers the map box
@@ -1532,12 +1583,21 @@ export function NeighborhoodMap() {
         <div
           style={{
             background: "#fffdf6", border: "3px solid #4e342e", borderRadius: 3,
-            padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "#b45309",
+            padding: "4px 10px", fontSize: 12, fontWeight: 900, color: "#b45309",
             boxShadow: "0 3px 0 #3e2723", display: "flex", alignItems: "center", gap: 6,
           }}
         >
           <Coins style={{ width: 14, height: 14 }} strokeWidth={2.5} />
-          {coins}/{TOTAL_COINS}
+          {wallet}
+        </div>
+        <div
+          style={{
+            background: "#fffdf6", border: "3px solid #4e342e", borderRadius: 3,
+            padding: "4px 10px", fontSize: 10, fontWeight: 700, color: "#4e342e",
+            boxShadow: "0 3px 0 #3e2723",
+          }}
+        >
+          Recogidas {collectedCount}/{TOTAL_COINS}
         </div>
         <div
           style={{
@@ -1600,6 +1660,25 @@ export function NeighborhoodMap() {
             }}
           />
         </div>
+
+        {/* Equipped accessory — rides on Piggy's head (scales with the sprite) */}
+        {equippedAccessory && (
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: `${-2 + (equippedAccessory.offsetY ?? 0)}%`,
+              width: "60%",
+              height: "45%",
+              transform: "translateX(-50%)",
+              pointerEvents: "none",
+            }}
+          >
+            <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
+              <text x="50" y="74" textAnchor="middle" fontSize="74">{equippedAccessory.emoji}</text>
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* NPC Leaf near the waterfall */}
@@ -1721,7 +1800,42 @@ export function NeighborhoodMap() {
             : <Volume2 style={{ width: 12, height: 12 }} strokeWidth={3} />
           }
         </button>
+
+        {/* Shop */}
+        <button
+          onClick={() => { audio.unlock(); setShowShop(true) }}
+          aria-label="Abrir tienda"
+          style={{
+            background: "#ffcc02",
+            color: "#4e342e",
+            border: "3px solid #4e342e",
+            borderRadius: "3px",
+            padding: "4px 8px",
+            fontSize: "9px",
+            fontWeight: 800,
+            boxShadow: "0 3px 0 #3e2723",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+          }}
+        >
+          <ShoppingBag style={{ width: 12, height: 12 }} strokeWidth={3} />
+        </button>
       </div>
+
+      {/* Shop modal */}
+      {showShop && (
+        <Shop
+          wallet={wallet}
+          owned={owned}
+          equipped={equipped}
+          onBuy={buyAccessory}
+          onEquip={equipAccessory}
+          onUnequip={unequipAccessory}
+          onClose={() => setShowShop(false)}
+        />
+      )}
 
       {/* Bottom-left: virtual joystick */}
       <div
@@ -1774,8 +1888,9 @@ export function NeighborhoodMap() {
         </div>
       </div>
 
-      {/* Win celebration */}
-      {won && (
+      {/* Win celebration — hidden while shopping so it never blocks the shop.
+          "Seguir jugando" dismisses it (keep coins to spend); "Jugar de nuevo" resets. */}
+      {won && !showShop && (
         <div
           className="absolute inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(20,12,6,0.55)" }}
@@ -1794,23 +1909,30 @@ export function NeighborhoodMap() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "#4e342e", marginTop: 6 }}>
               Recogiste las {TOTAL_COINS} monedas
             </div>
-            <button
-              onClick={resetGame}
-              style={{
-                marginTop: 14,
-                background: "#ffcc02",
-                color: "#4e342e",
-                border: "3px solid #4e342e",
-                borderRadius: 4,
-                padding: "6px 16px",
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: "pointer",
-                boxShadow: "0 3px 0 #3e2723",
-              }}
-            >
-              Jugar de nuevo
-            </button>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
+              <button
+                onClick={() => setWon(false)}
+                style={{
+                  background: "#2d8a4e", color: "#fff8e1",
+                  border: "3px solid #4e342e", borderRadius: 4,
+                  padding: "6px 14px", fontSize: 12, fontWeight: 800,
+                  cursor: "pointer", boxShadow: "0 3px 0 #3e2723",
+                }}
+              >
+                Seguir jugando
+              </button>
+              <button
+                onClick={resetGame}
+                style={{
+                  background: "#ffcc02", color: "#4e342e",
+                  border: "3px solid #4e342e", borderRadius: 4,
+                  padding: "6px 14px", fontSize: 12, fontWeight: 800,
+                  cursor: "pointer", boxShadow: "0 3px 0 #3e2723",
+                }}
+              >
+                Jugar de nuevo
+              </button>
+            </div>
           </div>
         </div>
       )}
