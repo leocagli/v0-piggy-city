@@ -18,12 +18,17 @@ import {
   Volume2,
   VolumeX,
   ShoppingBag,
+  Sun,
+  Moon,
+  CloudRain,
+  Snowflake,
 } from "lucide-react"
 import { NPCLeaf } from "./npc-leaf"
 import { NPCBusinessBear } from "./npc-business-bear"
 import { NPCHomeBear } from "./npc-home-bear"
 import { Coin } from "./coin"
 import { Shop } from "./shop"
+import { Weather, type WeatherType } from "./weather"
 import { GameStorage } from "@/lib/game-storage"
 import { audio } from "@/lib/audio"
 import { findAccessory } from "@/lib/accessories"
@@ -924,6 +929,13 @@ export function NeighborhoodMap() {
   const [muted, setMuted] = useState(false)
   const [won, setWon] = useState(false)
 
+  // ── Ambient: day/night cycle + weather ──
+  const skyRef = useRef<HTMLDivElement>(null) // tinted via rAF (no re-render)
+  const lastSkyRef = useRef("")               // last tint string — skip identical writes
+  const todRef = useRef(0)                    // time-of-day 0..1 (0=dawn,.25=noon,.5=dusk,.75=midnight)
+  const [isNight, setIsNight] = useState(false)
+  const [weather, setWeather] = useState<WeatherType>("clear")
+
   // Nearest interactable zone (within ~2 cells of its trigger point)
   const nearestZone = (() => {
     let closest: Zone | null = null
@@ -1026,6 +1038,25 @@ export function NeighborhoodMap() {
   const unequipAccessory = useCallback(() => {
     setEquipped(null)
     GameStorage.queue({ equipped: null })
+  }, [])
+
+  // Click the sky chip to cycle the weather manually
+  const cycleWeather = useCallback(() => {
+    setWeather((w) => (w === "clear" ? "rain" : w === "rain" ? "snow" : "clear"))
+  }, [])
+
+  // Low-frequency ambient ticks: day/night indicator + occasional weather changes.
+  // (The tint itself updates every frame imperatively in the rAF loop.)
+  useEffect(() => {
+    const skyTick = setInterval(() => {
+      const night = todRef.current >= 0.5
+      setIsNight((prev) => (prev === night ? prev : night))
+    }, 2000)
+    const weatherTick = setInterval(() => {
+      const r = Math.random()
+      setWeather(r < 0.6 ? "clear" : r < 0.82 ? "rain" : "snow")
+    }, 45000)
+    return () => { clearInterval(skyTick); clearInterval(weatherTick) }
   }, [])
 
   // requestAnimationFrame loop — smooth, frame-rate-independent movement.
@@ -1134,6 +1165,24 @@ export function NeighborhoodMap() {
       setPiggyPos((prev) => (prev.x !== p.x || prev.y !== p.y ? { x: p.x, y: p.y } : prev))
       setPiggyDirection(dirRef.current)
       setIsMoving(moving)
+
+      // ── Day/night tint — written imperatively to the sky overlay (no re-render) ──
+      const tod = (ts / 240000 + 0.18) % 1 // full day ≈ 4 min; start mid-morning
+      todRef.current = tod
+      const sky = skyRef.current
+      if (sky) {
+        const s = Math.sin(tod * Math.PI * 2) // >0 daytime, <0 night
+        const night = Math.max(0, -s) // 0..1, peaks at midnight
+        const golden = Math.max(0, 1 - Math.abs(s) * 2.2) // peaks at dawn/dusk
+        const a = night * 0.5 + golden * 0.18
+        const t = night / (night + golden + 0.0001) // 0 = warm gold, 1 = night blue
+        const r = Math.round(255 * (1 - t) + 12 * t)
+        const g = Math.round(150 * (1 - t) + 18 * t)
+        const b = Math.round(60 * (1 - t) + 55 * t)
+        const bg = `rgba(${r},${g},${b},${a.toFixed(3)})`
+        if (bg !== lastSkyRef.current) { sky.style.background = bg; lastSkyRef.current = bg }
+      }
+
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -1621,7 +1670,7 @@ export function NeighborhoodMap() {
           width: `${cellW * 2}%`,
           height: `${cellH * 2}%`,
           transform: "translate(-50%, -62%)",
-          zIndex: 30 + Math.round(piggyPos.y),
+          zIndex: 30, // above coins(25)/NPCs(20), below the day-night tint(36) so Piggy gets tinted too
         }}
       >
         {/* Ground shadow — grounds the character and squashes slightly while walking */}
@@ -1707,6 +1756,48 @@ export function NeighborhoodMap() {
         const isNearby = distance < 2.5
         return <NPCHomeBear x={npcX} y={npcY} cellW={cellW} cellH={cellH} isNearby={isNearby} />
       })()}
+
+      {/* Day/night tint overlay — background set imperatively by the rAF loop.
+          z-36: above Piggy/NPCs/coins (tints them) but below weather + HUD. */}
+      <div
+        ref={skyRef}
+        data-sky
+        className="absolute inset-0 pointer-events-none"
+        style={{ zIndex: 36 }}
+      />
+
+      {/* Weather particles (rain / snow) — z-38, above the tint, below the HUD */}
+      <Weather type={weather} />
+
+      {/* Top-right: time + weather chip (click to cycle weather) */}
+      <button
+        onClick={() => { audio.unlock(); cycleWeather() }}
+        aria-label="Cambiar clima"
+        className="absolute z-40 pointer-events-auto"
+        style={{
+          top: "clamp(10px, 2.5vw, 14px)",
+          right: "clamp(10px, 2.5vw, 14px)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "#fffdf6",
+          border: "3px solid #4e342e",
+          borderRadius: 3,
+          padding: "4px 9px",
+          boxShadow: "0 3px 0 #3e2723",
+          cursor: "pointer",
+          color: "#4e342e",
+        }}
+      >
+        {isNight
+          ? <Moon style={{ width: 14, height: 14 }} strokeWidth={2.5} />
+          : <Sun style={{ width: 14, height: 14 }} strokeWidth={2.5} />}
+        {weather === "rain"
+          ? <CloudRain style={{ width: 14, height: 14, color: "#1a6fb5" }} strokeWidth={2.5} />
+          : weather === "snow"
+            ? <Snowflake style={{ width: 14, height: 14, color: "#1a6fb5" }} strokeWidth={2.5} />
+            : null}
+      </button>
 
       {/* Bottom-right controls */}
       <div
